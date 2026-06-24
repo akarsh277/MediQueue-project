@@ -20,7 +20,7 @@ async function api(path, method = 'GET', body = null) {
     const data = await res.json().catch(() => ({}));
     
     if (!res.ok) {
-        if (res.status === 401) {
+        if (res.status === 401 && path !== '/login') {
             clearSession();
             window.location.href = 'login.html';
             // Stop execution by throwing a silent error to prevent cascades
