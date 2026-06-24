@@ -58,7 +58,7 @@ def register_patient(request: Request, data: schemas.PatientRegisterRequest, db:
     new_user = models.User(
         username=data.username,
         phone=data.phone,
-        password=data.password,
+        password=pwd_context.hash(data.password),
         role="patient",
         age=data.age
     )
