@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediQueue — Patient Registration</title>
+  <meta name="description" content="Register a new patient visit and receive a queue token.">
+  <link rel="stylesheet" href="style.css?v=3">
+  <style>
+    .patient-wrap {
+      max-width: 680px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .pat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.75rem;
+    }
+
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .82rem;
+      color: var(--txt-300);
+    }
+
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--clr-border);
+    }
+
+    .step-dot.done {
+      background: var(--clr-primary);
+    }
+
+    .step-line {
+      width: 16px;
+      height: 1px;
+      background: var(--clr-border);
+      transition: background .3s;
+    }
+
+    .step-line.done {
+      background: var(--clr-primary);
+    }
+
+    .step-dot.active {
+      background: var(--clr-primary);
+      box-shadow: 0 0 0 3px rgba(0, 198, 167, .25);
+    }
+
+    #token-result {
+      display: none;
+      margin-top: 2rem;
+      animation: fadeUp .5s ease;
+    }
+
+    .wait-info {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+
+    .wait-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: .9rem 1.5rem;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      min-width: 130px;
+    }
+
+    .wait-chip .wc-val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--txt-100);
+    }
+
+    .wait-chip .wc-lbl {
+      font-size: .75rem;
+      color: var(--txt-300);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-top: .15rem;
+    }
+
+    .emergency-toggle-card {
+      background: var(--clr-danger-dim);
+      border: 1px solid rgba(255, 86, 119, .2);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .emergency-label-text {
+      font-weight: 600;
+      font-size: .9rem;
+    }
+
+    .emergency-label-text small {
+      display: block;
+      color: var(--txt-300);
+      font-weight: 400;
+      font-size: .78rem;
+      margin-top: .1rem;
+    }
+
+    .new-btn {
+      margin-top: 1rem;
+    }
+
+    .form-card {
+      animation: fadeUp .3s ease;
+    }
+
+    /* Priority hint badge */
+    .priority-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .78rem;
+      font-weight: 600;
+      padding: .25rem .7rem;
+      border-radius: 100px;
+      margin-top: .4rem;
+      transition: all .25s ease;
+    }
+
+    .priority-hint.emergency {
+      background: rgba(255, 56, 100, .15);
+      color: #ff6b8a;
+      border: 1px solid rgba(255, 56, 100, .3);
+    }
+
+    .priority-hint.child {
+      background: rgba(255, 190, 50, .12);
+      color: #ffc83d;
+      border: 1px solid rgba(255, 190, 50, .3);
+    }
+
+    .priority-hint.senior {
+      background: rgba(0, 212, 170, .12);
+      color: #00d4aa;
+      border: 1px solid rgba(0, 212, 170, .3);
+    }
+
+    .priority-hint.normal {
+      background: rgba(255, 255, 255, .06);
+      color: var(--txt-300);
+      border: 1px solid var(--clr-border);
+    }
+
+    .priority-hint.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Live refresh chip on token page */
+    .live-refresh-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .75rem;
+      color: var(--txt-300);
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid var(--clr-border);
+      border-radius: 100px;
+      padding: .2rem .7rem;
+      margin-top: .75rem;
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00d4aa;
+      animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .2
+      }
+    }
+
+    /* Doctor select loading state */
+    .select-loading {
+      opacity: .6;
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+  <div class="bg-mesh"></div>
+  <div id="toast-container"></div>
+
+  <div class="page-wrap">
+    <div class="patient-wrap">
+
+      <!-- Header -->
+      <div class="pat-header">
+        <div class="brand">
+          <div class="brand-icon"></div>
+          <span>Medi<span class="hl">Queue</span></span>
+        </div>
+        <div class="step-indicator">
+          <div class="step-dot active" id="dot1"></div>
+          <div class="step-line" id="line1"></div>
+          <div class="step-dot" id="dot2"></div>
+        </div>
+      </div>
+
+      <!-- Registration Form -->
+      <div class="card form-card" id="reg-form-card">
+        <div style="margin-bottom:1.5rem;">
+          <h1>Patient Registration</h1>
+          <p class="sub" style="margin-top:.3rem;">Fill in patient details to register and receive a queue token</p>
+        </div>
+
+        <form id="pat-form" onsubmit="event.preventDefault();" novalidate>
+          <div class="form-stack" style="display:flex;flex-direction:column;gap:1rem;">
+
+            <!-- Row 1: Name & Age -->
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label" for="p-name">Full Name</label>
+                <input id="p-name" type="text" class="form-input" placeholder="Patient's full name" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="p-age">Age</label>
+                <input id="p-age" type="number" class="form-input" placeholder="Age" min="1" max="120" required>
+                <span class="priority-hint hidden" id="priority-hint"></span>
+              </div>
+            </div>
+
+            <!-- Row 2: Phone & Password -->
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label" for="p-phone">Phone Number</label>
+                <input id="p-phone" type="tel" class="form-input" placeholder="10-digit mobile number" maxlength="10"
+                  required>
+                <span class="priority-hint hidden" id="returning-hint"
+                  style="background: rgba(61,139,255,.15); color: #3d8bff; border-color: rgba(61,139,255,.3); align-self: flex-start;"></span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="p-password">Password</label>
+                <input id="p-password" type="text" class="form-input" placeholder="Enter password" required>
+              </div>
+            </div>
+
+            <!-- Row 3: Problem -->
+            <div class="form-group">
+              <label class="form-label" for="p-problem">Presenting Problem / Symptoms</label>
+              <textarea id="p-problem" class="form-textarea"
+                placeholder="Describe the patient's symptoms or reason for visit…" required></textarea>
+            </div>
+
+            <!-- Row 4: Doctor Dropdown -->
+            <div class="form-group">
+              <label class="form-label" for="p-docid">Assign Doctor</label>
+              <select id="p-docid" class="form-select select-loading" required>
+                <option value="">⏳ Loading doctors…</option>
+              </select>
+              <span class="sub" style="margin-top:.3rem;">Select the doctor this patient will visit</span>
+            </div>
+
+            <!-- Emergency Toggle -->
+            <div class="emergency-toggle-card">
+              <div>
+                <div class="emergency-label-text">Emergency Case</div>
+                <small>Emergency patients are always prioritised first in queue</small>
+              </div>
+              <label class="toggle" for="p-emergency">
+                <input type="checkbox" id="p-emergency" aria-label="Mark as emergency case">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg btn-full" id="reg-btn" style="margin-top:.5rem;">
+              Review Details →
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Confirmation Card -->
+      <div class="card form-card" id="confirm-card" style="display:none; animation: fadeUp .3s ease;">
+        <div style="margin-bottom:1.5rem;">
+          <h1>Review Details</h1>
+          <p class="sub" style="margin-top:.3rem;">Please confirm the patient information before creating a token</p>
+        </div>
+
+        <div class="form-stack" style="gap:.8rem;">
+          <div
+            style="background:rgba(255,255,255,.03); border:1px solid var(--clr-border); padding:1rem; border-radius:var(--radius-sm);">
+            <div style="font-size:.85rem; color:var(--txt-300);">Patient Name</div>
+            <div id="conf-name" style="font-size:1.1rem; font-weight:600; margin-bottom:.7rem;">—</div>
+
+            <div style="display:flex; gap:2rem; margin-bottom:.7rem;">
+              <div>
+                <div style="font-size:.85rem; color:var(--txt-300);">Age</div>
+                <div id="conf-age" style="font-size:1rem; font-weight:500;">—</div>
+              </div>
+              <div>
+                <div style="font-size:.85rem; color:var(--txt-300);">Phone</div>
+                <div id="conf-phone" style="font-size:1rem; font-weight:500;">—</div>
+              </div>
+            </div>
+
+            <div style="font-size:.85rem; color:var(--txt-300);">Problem</div>
+            <div id="conf-problem" style="font-size:.95rem; margin-bottom:.7rem;">—</div>
+
+            <div style="font-size:.85rem; color:var(--txt-300);">Assigned Doctor</div>
+            <div id="conf-doctor"
+              style="font-size:1rem; font-weight:500; color:var(--clr-primary); margin-bottom:.7rem;">—</div>
+
+            <div style="font-size:.85rem; color:var(--txt-300);">Priority</div>
+            <div id="conf-priority" style="font-size:1rem; font-weight:600;">—</div>
+          </div>
+
+          <div style="display:flex; gap:1rem; margin-top:.5rem;">
+            <button type="button" class="btn btn-ghost btn-lg" id="back-edit-btn" style="flex:1; padding:.85rem 1rem;">
+              ← Edit Details
+            </button>
+            <button type="button" class="btn btn-primary btn-lg" id="confirm-create-btn" style="flex:1.5;">
+              Confirm & Create
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token Result -->
+      <div id="token-result">
+        <div class="token-card">
+          <div class="token-label">Your Queue Token</div>
+          <div class="token-number" id="token-num">—</div>
+          <div class="sub" style="margin-top:.5rem;" id="token-name">—</div>
+
+          <div class="wait-info" id="wait-info">
+            <div class="wait-chip">
+              <div class="wc-val" id="wc-position">—</div>
+              <div class="wc-lbl">Queue Position</div>
+            </div>
+            <div class="wait-chip">
+              <div class="wc-val" id="wc-wait">—</div>
+              <div class="wc-lbl">Est. Wait</div>
+            </div>
+            <div class="wait-chip">
+              <div class="wc-val" id="wc-priority">—</div>
+              <div class="wc-lbl">Priority</div>
+            </div>
+          </div>
+
+          <div style="text-align:center;">
+            
+          </div>
+        </div>
+
+        <div style="margin-top:1rem;text-align:center;">
+          <p class="sub"></p>
+          <button class="btn btn-ghost new-btn" id="new-patient-btn">
+            Register Another Patient
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /patient-wrap -->
+  </div>
+
+  <script src="script.js?v=3"></script>
+  <script>
+    const priorityLabels = { 1: 'Emergency', 2: 'Child', 3: 'Senior', 4: 'Normal' };
+
+    const form = document.getElementById('pat-form');
+    const regBtn = document.getElementById('reg-btn');
+    const formCard = document.getElementById('reg-form-card');
+    const result = document.getElementById('token-result');
+    const confirmCard = document.getElementById('confirm-card');
+    const dot1 = document.getElementById('dot1');
+    const dot2 = document.getElementById('dot2');
+    const line1 = document.getElementById('line1');
+
+    let currentDoctorId = null;
+    let pendingData = null;
+    let currentVisitId = null;
+    let liveRefreshTimer = null;
+
+    // ─── Load doctor dropdown ────────────────────────────────────
+    async function loadDoctors() {
+      const sel = document.getElementById('p-docid');
+      try {
+        const doctors = await api('/doctors');
+        if (!doctors.length) {
+          sel.innerHTML = '<option value="">No doctors found — add via Admin</option>';
+          sel.classList.remove('select-loading');
+          return;
+        }
+        sel.innerHTML = '<option value="">— Select a Doctor —</option>' +
+          doctors.map(d =>
+            `<option value="${d.id}">Dr. ${d.name} — ${d.department}</option>`
+          ).join('');
+        sel.classList.remove('select-loading');
+      } catch (err) {
+        sel.innerHTML = '<option value="">⚠️ Failed to load — enter ID manually</option>';
+        // Fallback: replace select with number input
+        const fallback = document.createElement('input');
+        fallback.type = 'number'; fallback.id = 'p-docid';
+        fallback.className = 'form-input'; fallback.placeholder = 'Enter Doctor ID';
+        fallback.min = '1'; fallback.required = true;
+        sel.replaceWith(fallback);
+      }
+    }
+
+    // ─── Age priority hint ────────────────────────────────────────
+    document.getElementById('p-age').addEventListener('input', function () {
+      const hint = document.getElementById('priority-hint');
+      const age = parseInt(this.value);
+      const isEmerg = document.getElementById('p-emergency').checked;
+
+      hint.classList.remove('hidden', 'emergency', 'child', 'senior', 'normal');
+
+      if (!this.value || isNaN(age)) { hint.classList.add('hidden'); return; }
+
+      if (isEmerg) {
+        hint.className = 'priority-hint emergency'; hint.textContent = 'Emergency priority';
+      } else if (age < 5) {
+        hint.className = 'priority-hint child'; hint.textContent = 'Child priority (age < 5)';
+      } else if (age > 60) {
+        hint.className = 'priority-hint senior'; hint.textContent = 'Senior priority (age > 60)';
+      } else {
+        hint.className = 'priority-hint normal'; hint.textContent = 'Normal priority';
+      }
+    });
+
+    document.getElementById('p-emergency').addEventListener('change', function () {
+      document.getElementById('p-age').dispatchEvent(new Event('input'));
+    });
+
+    // ─── Returning patient check ──────────────────────────────────
+    document.getElementById('p-phone').addEventListener('input', async function () {
+      const returningHint = document.getElementById('returning-hint');
+      const phone = this.value.trim();
+      if (phone.length === 10 && /^\d+$/.test(phone)) {
+        try {
+          const res = await api(`/check-phone/${phone}`);
+          if (res.exists) {
+            const nameField = document.getElementById('p-name');
+            if (!nameField.value) { nameField.value = res.name; }
+
+            if (res.past_visit_count > 0) {
+              returningHint.classList.remove('hidden');
+              returningHint.textContent = `🔁 Returning Patient (${res.past_visit_count} past visits)`;
+            } else {
+              returningHint.classList.add('hidden');
+            }
+          } else {
+            returningHint.classList.add('hidden');
+          }
+        } catch (e) { }
+      } else {
+        returningHint.classList.add('hidden');
+      }
+    });
+
+    // ─── Submit form ──────────────────────────────────────────────
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('p-name').value.trim();
+      const age = parseInt(document.getElementById('p-age').value);
+      const phone = document.getElementById('p-phone').value.trim();
+      const problem = document.getElementById('p-problem').value.trim();
+      const docSelect = document.getElementById('p-docid');
+      const doctorId = parseInt(docSelect.value);
+      const doctorName = docSelect.options[docSelect.selectedIndex]?.text.split('—')[0].trim() || '';
+      const isEmerg = document.getElementById('p-emergency').checked;
+
+      if (!name || isNaN(age) || !phone || !problem || isNaN(doctorId)) {
+        showToast('Please fill in all fields.', 'warn'); return;
+      }
+      if (age <= 0) {
+        showToast('Age cannot be zero or negative.', 'warn'); return;
+      }
+      if (name.length < 2) {
+        showToast('Name must be at least 2 characters.', 'warn'); return;
+      }
+      if (!/^[A-Za-z\s.]+$/.test(name)) {
+        showToast('Name can only contain letters, spaces, and dots.', 'warn'); return;
+      }
+      if (age <= 0 || age > 120) {
+        showToast('Age must be between 1 and 120.', 'warn'); return;
+      }
+      if (phone.length !== 10 || !/^\d+$/.test(phone)) {
+        showToast('Phone must be exactly 10 digits.', 'warn'); return;
+      }
+      if (problem.length < 3) {
+        showToast('Problem description must be at least 3 characters.', 'warn'); return;
+      }
+
+      pendingData = { phone, name, age, problem, doctor_id: doctorId, is_emergency: isEmerg };
+
+      document.getElementById('conf-name').textContent = name;
+      document.getElementById('conf-age').textContent = age + ' yrs';
+      document.getElementById('conf-phone').textContent = phone;
+      document.getElementById('conf-problem').textContent = problem;
+      document.getElementById('conf-doctor').textContent = doctorName;
+
+      let prio = isEmerg ? 'Emergency' : (age < 5 ? 'Child' : (age > 60 ? 'Senior' : 'Normal'));
+      document.getElementById('conf-priority').textContent = prio;
+
+      formCard.style.display = 'none';
+      confirmCard.style.display = 'block';
+
+      dot1.classList.replace('active', 'done');
+      line1.classList.add('done');
+      dot2.classList.add('active');
+    });
+
+    document.getElementById('back-edit-btn').addEventListener('click', () => {
+      confirmCard.style.display = 'none';
+      formCard.style.display = 'block';
+      dot2.classList.remove('active');
+      line1.classList.remove('done');
+      dot1.classList.replace('done', 'active');
+    });
+
+    document.getElementById('confirm-create-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('confirm-create-btn');
+      setLoading(btn, true);
+      try {
+        const res = await api('/addPatient', 'POST', pendingData);
+
+        currentDoctorId = pendingData.doctor_id;
+        currentVisitId = res.data?.visit_id;
+
+        let tokenDisplay = '?';
+        let position = '—', waitMins = '—';
+        let priority = res.data?.priority || 4;
+
+        try {
+          const queue = await api(`/queue/${currentDoctorId}`);
+          const predictres = await api(`/predict-wait-time/${currentVisitId}`);
+          const entry = queue.find(q => q.visit_id === currentVisitId);
+          if (entry && predictres) {
+            tokenDisplay = '#' + entry.token_number;
+            position = predictres.queue_position;
+            waitMins = predictres.estimated_wait_time === 0 ? 'Next!' : `~${predictres.estimated_wait_time}m`;
+          }
+        } catch (_) { }
+
+        document.getElementById('token-num').textContent = tokenDisplay;
+        document.getElementById('token-name').textContent = `Patient: ${pendingData.name}`;
+        document.getElementById('wc-position').textContent = position;
+        document.getElementById('wc-wait').textContent = waitMins;
+        document.getElementById('wc-priority').textContent = priorityLabels[priority] || 'Normal';
+
+        // Transition to result
+        confirmCard.style.display = 'none';
+        result.style.display = 'block';
+
+        dot2.classList.replace('active', 'done');
+
+        showToast('Patient registered successfully!', 'success');
+
+        // Start live position refresh
+        startLiveRefresh(currentDoctorId, currentVisitId, priority);
+
+      } catch (err) {
+        showToast(err.message || 'Failed to register patient.', 'error');
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+
+    // ─── Live wait-time refresh ───────────────────────────────────
+    function startLiveRefresh(doctorId, visitId, priority) {
+      
+      liveRefreshTimer = setInterval(async () => {
+        try {
+          const predictres = await api(`/predict-wait-time/${visitId}`);
+          const queue = await api(`/queue/${doctorId}`);
+          const entry = queue.find(q => q.visit_id === visitId);
+
+          if (entry && predictres && predictres.message !== 'Patient is currently serving') {
+            document.getElementById('wc-position').textContent = predictres.queue_position;
+            document.getElementById('wc-wait').textContent =
+              predictres.estimated_wait_time === 0 ? 'Next!' : `~${predictres.estimated_wait_time}m`;
+          } else {
+            // Patient no longer in queue (called up / served)
+            document.getElementById('wc-position').textContent = '✅';
+            document.getElementById('wc-wait').textContent = 'Being Served!';
+            
+          }
+        } catch (_) { }
+      }, 15000);
+    }
+
+    // ─── Reset form ───────────────────────────────────────────────
+    document.getElementById('new-patient-btn').addEventListener('click', () => {
+      
+      form.reset();
+      document.getElementById('priority-hint').className = 'priority-hint hidden';
+      formCard.style.display = 'block';
+      result.style.display = 'none';
+      dot1.className = 'step-dot active';
+      line1.className = 'step-line';
+      dot2.className = 'step-dot';
+      setLoading(regBtn, false);
+    });
+
+    // ─── Init ─────────────────────────────────────────────────────
+    loadDoctors();
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+          console.log('SW registered!', reg.scope);
+        }).catch(err => {
+          console.log('SW registration failed: ', err);
+        });
+      });
+    }
+  </script>
+</body>
+
+</html>

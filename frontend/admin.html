@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediQueue — Admin Dashboard</title>
+  <meta name="description" content="Admin control panel for MediQueue hospital queue management.">
+  <link rel="stylesheet" href="style.css?v=3">
+  <style>
+    /* Sidebar user card */
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .75rem 1rem;
+      margin-bottom: .5rem;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+    }
+
+    .user-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .user-info-name {
+      font-weight: 600;
+      font-size: .88rem;
+    }
+
+    .user-info-role {
+      font-size: .73rem;
+      color: var(--clr-primary);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* Form card */
+    .form-card {
+      max-width: 540px;
+    }
+
+    .form-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* Result badge row */
+    .result-row {
+      display: flex;
+      gap: .65rem;
+      flex-wrap: wrap;
+      margin-top: .25rem;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-bottom: .25rem;
+    }
+
+    .section-sub {
+      color: var(--txt-200);
+      font-size: .87rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Nav badge */
+    .nav-badge {
+      margin-left: auto;
+      background: var(--clr-accent);
+      color: #000;
+      font-size: .68rem;
+      font-weight: 700;
+      padding: .1rem .45rem;
+      border-radius: 100px;
+      display: none;
+    }
+
+    /* Admitted patients table */
+    .admit-empty {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      background: rgba(0, 212, 170, .04);
+      border: 1px dashed rgba(0, 212, 170, .2);
+      border-radius: var(--radius-md);
+      color: var(--txt-300);
+      font-size: .92rem;
+    }
+
+    /* Messages */
+    .msg-thread {
+      background: rgba(0, 0, 0, .18);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      height: 340px;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .65rem;
+      margin-bottom: 1rem;
+    }
+
+    .msg-bubble {
+      max-width: 80%;
+      padding: .55rem .85rem;
+      border-radius: 10px;
+      font-size: .83rem;
+      line-height: 1.45;
+    }
+
+    .msg-bubble.sent {
+      align-self: flex-end;
+      background: rgba(61, 139, 255, .22);
+      border: 1px solid rgba(61, 139, 255, .3);
+    }
+
+    .msg-bubble.received {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid var(--clr-border);
+    }
+
+    .msg-meta {
+      font-size: .68rem;
+      color: var(--txt-300);
+      margin-top: .25rem;
+    }
+
+    .msg-compose {
+      display: flex;
+      gap: .65rem;
+    }
+
+    .msg-compose .form-input {
+      flex: 1;
+    }
+
+    /* Live Queues section */
+    .doctor-queue-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .doctor-queue-card {
+      background: var(--clr-glass);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      padding: 1.1rem 1.25rem;
+      backdrop-filter: blur(16px);
+      transition: border-color .2s;
+    }
+
+    .doctor-queue-card:hover {
+      border-color: rgba(61, 139, 255, .4);
+    }
+
+    .dq-header {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      margin-bottom: .85rem;
+    }
+
+    .dq-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
+      display: grid;
+      place-items: center;
+      font-size: .95rem;
+      flex-shrink: 0;
+    }
+
+    .dq-name {
+      font-weight: 700;
+      font-size: .9rem;
+    }
+
+    .dq-dept {
+      font-size: .72rem;
+      color: var(--clr-primary);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .dq-stats {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+    }
+
+    .dq-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: .5rem .85rem;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid var(--clr-border);
+      border-radius: 8px;
+      min-width: 70px;
+    }
+
+    .dq-chip .dqc-val {
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+
+    .dq-chip .dqc-lbl {
+      font-size: .65rem;
+      color: var(--txt-300);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .dq-serving-name {
+      margin-top: .75rem;
+      font-size: .8rem;
+      color: var(--txt-200);
+      background: rgba(61, 139, 255, .1);
+      border: 1px solid rgba(61, 139, 255, .2);
+      border-radius: 6px;
+      padding: .3rem .75rem;
+    }
+
+    /* Today's Patients filter bar */
+    .filter-bar {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+      align-items: center;
+    }
+
+    .filter-bar input {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .filter-bar select {
+      min-width: 140px;
+    }
+
+    /* Status pills */
+    .status-pill {
+      display: inline-block;
+      padding: .18rem .65rem;
+      border-radius: 100px;
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .status-waiting {
+      background: rgba(255, 190, 50, .15);
+      color: #ffc83d;
+      border: 1px solid rgba(255, 190, 50, .3);
+    }
+
+    .status-serving {
+      background: rgba(61, 139, 255, .15);
+      color: #3d8bff;
+      border: 1px solid rgba(61, 139, 255, .3);
+    }
+
+    .status-completed {
+      background: rgba(0, 212, 170, .15);
+      color: #00d4aa;
+      border: 1px solid rgba(0, 212, 170, .3);
+    }
+
+    .status-admitted {
+      background: rgba(255, 86, 119, .15);
+      color: #ff5677;
+      border: 1px solid rgba(255, 86, 119, .3);
+    }
+
+    .status-discharged {
+      background: rgba(255, 255, 255, .08);
+      color: var(--txt-300);
+      border: 1px solid var(--clr-border);
+    }
+
+    /* Red dot notification indicator */
+    .nav-red-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff4466;
+      margin-left: auto;
+      flex-shrink: 0;
+      display: none;
+      box-shadow: 0 0 6px rgba(255, 68, 102, .7);
+      animation: pulse-red 1.5s ease-in-out infinite;
+    }
+
+    .nav-red-dot.show {
+      display: block;
+    }
+
+    @keyframes pulse-red {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.35);
+        opacity: .7;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+  <div class="bg-mesh"></div>
+  <div id="toast-container"></div>
+
+  <div class="app-layout">
+    <!-- ─── Sidebar ─────────────────────────────────────────── -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand" style="font-size:1.2rem;">
+          <div class="brand-icon" style="width:36px;height:36px;font-size:1rem;"></div>
+          <span>Medi<span class="hl">Queue</span></span>
+        </div>
+      </div>
+
+      <div class="sidebar-nav">
+        <div class="nav-item active" data-section="overview" onclick="showSection(this)">
+          Overview
+        </div>
+        <div class="nav-item" data-section="analytics" onclick="showSection(this)">
+          Predictive Analytics
+        </div>
+        <div class="nav-item" data-section="live-queues" onclick="showSection(this)">
+          Live Queues
+          <span class="nav-badge" id="live-badge">0</span>
+        </div>
+        <div class="nav-item" data-section="today" onclick="showSection(this)">
+          Today's Patients
+        </div>
+        <div class="nav-item" data-section="admitted" onclick="showSection(this)">
+          Admitted Patients
+          <span class="nav-badge" id="admitted-badge">0</span>
+        </div>
+        <div class="nav-item" data-section="admission-requests" onclick="showSection(this)">
+          Admission Requests
+          <span class="nav-badge" id="admission-req-badge">0</span>
+          <span class="nav-red-dot" id="admission-red-dot" title="New admission requests"></span>
+        </div>
+        <div class="nav-item" data-section="messages" onclick="showSection(this)">
+          Messages
+          <span class="nav-badge" id="msg-badge">0</span>
+        </div>
+        <div class="nav-item" data-section="add-doctor" onclick="showSection(this)">
+          Add Doctor
+        </div>
+        <div class="nav-item" data-section="add-bed" onclick="showSection(this)">
+          Add Bed
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="user-avatar">🛡️</div>
+          <div>
+            <div class="user-info-name">Admin</div>
+            <div class="user-info-role">Administrator</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-full btn-sm" onclick="logout()" style="margin-top:.5rem;">
+          Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- ─── Main Content ────────────────────────────────────── -->
+    <main class="main-content">
+
+      <!-- ── OVERVIEW SECTION ────────────────────────────────── -->
+      <div class="section active" id="section-overview">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Dashboard Overview</div>
+            <div class="page-sub">Live hospital statistics — <span id="refresh-time">Loading…</span></div>
+          </div>
+          
+        </div>
+
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card c-primary">
+            <div class="stat-value" id="s-today">—</div>
+            <div class="stat-label">Patients Today</div>
+          </div>
+          <div class="stat-card c-accent">
+            <div class="stat-value" id="s-waiting">—</div>
+            <div class="stat-label">Waiting</div>
+          </div>
+          <div class="stat-card c-warn">
+            <div class="stat-value" id="s-serving">—</div>
+            <div class="stat-label">Being Served</div>
+          </div>
+          <div class="stat-card c-danger">
+            <div class="stat-value" id="s-admitted">—</div>
+            <div class="stat-label">Admitted</div>
+          </div>
+          <div class="stat-card c-success">
+            <div class="stat-value" id="s-beds">—</div>
+            <div class="stat-label">Beds Available</div>
+          </div>
+          <div class="stat-card c-primary">
+            <div class="stat-value" id="s-doctors">—</div>
+            <div class="stat-label">Total Doctors</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+          <a href="patient.html" class="btn btn-primary">Register Patient</a>
+          <a href="display.html" class="btn btn-ghost" target="_blank">Display Board</a>
+        </div>
+      </div>
+
+      <!-- ── LIVE QUEUES SECTION ─────────────────────────────── -->
+      <div class="section" id="section-live-queues">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Live Queues</div>
+            <div class="page-sub">Real-time queue depth per doctor — auto-refreshes every 15s</div>
+          </div>
+          
+        </div>
+        <div class="doctor-queue-grid" id="live-queue-grid">
+          <div style="color:var(--txt-300);font-size:.9rem;padding:1rem;">Loading doctor queues…</div>
+        </div>
+      </div>
+
+      <!-- ── TODAY'S PATIENTS SECTION ───────────────────────── -->
+      <div class="section" id="section-today">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Today's Patients</div>
+            <div class="page-sub">All patient visits registered today</div>
+          </div>
+          
+        </div>
+
+        <div class="filter-bar">
+          <input type="text" id="today-search" class="form-input" placeholder="Search by name, phone, or token…"
+            oninput="filterToday()">
+          <select id="today-filter-status" class="form-select" onchange="filterToday()">
+            <option value="">All Statuses</option>
+            <option value="waiting">Waiting</option>
+            <option value="serving">Serving</option>
+            <option value="completed">Completed</option>
+            <option value="admitted">Admitted</option>
+            <option value="discharged">Discharged</option>
+          </select>
+        </div>
+
+        <div class="tbl-wrap">
+          <table id="today-table">
+            <thead>
+              <tr>
+                <th>Token</th>
+                <th>Patient Name</th>
+                <th>Age</th>
+                <th>Doctor</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Registered</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="today-body">
+              <tr>
+                <td colspan="8">
+                  <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <div>Loading…</div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── ADMITTED PATIENTS SECTION ──────────────────────── -->
+      <div class="section" id="section-admitted">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Admitted Patients</div>
+            <div class="page-sub">Patients currently occupying beds — discharge to free a bed</div>
+          </div>
+          
+        </div>
+
+        <div class="tbl-wrap">
+          <table id="admitted-table">
+            <thead>
+              <tr>
+                <th>Bed #</th>
+                <th>Patient Name</th>
+                <th>Problem</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admitted-body">
+              <tr>
+                <td colspan="5">
+                  <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <div>Loading…</div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── ADMISSION REQUESTS SECTION ──────────────────────── -->
+      <div class="section" id="section-admission-requests">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Admission Requests</div>
+            <div class="page-sub">Review doctor requests and confirm bed allocation</div>
+          </div>
+          
+        </div>
+
+        <div class="tbl-wrap">
+          <table id="admission-req-table">
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Condition</th>
+                <th>Suggested Bed</th>
+                <th>Assign Bed #</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admission-req-body">
+              <tr>
+                <td colspan="6">
+                  <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <div>Loading…</div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── MESSAGES SECTION ────────────────────────────────── -->
+      <div class="section" id="section-messages">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Messages</div>
+            <div class="page-sub">From doctors &amp; reception — reply to communicate back</div>
+          </div>
+          
+        </div>
+
+        <div class="card" style="max-width:720px;">
+          <div class="msg-thread" id="msg-thread">
+            <div style="text-align:center;color:var(--txt-300);font-size:.83rem;margin:auto;">Loading messages…</div>
+          </div>
+          <div class="msg-compose">
+            <input id="msg-input" type="text" class="form-input" placeholder="Reply to doctor / reception…"
+              maxlength="500" onkeydown="if(event.key==='Enter') sendMessage()">
+            <button class="btn btn-primary" id="msg-send-btn" onclick="sendMessage()">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ADD DOCTOR SECTION ──────────────────────────────── -->
+      <div class="section" id="section-add-doctor">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Add Doctor Profile</div>
+            <div class="page-sub">Create login credentials and link them to a doctor speciality record</div>
+          </div>
+        </div>
+
+        <div class="card form-card fade-in">
+          <form id="add-doctor-form" novalidate>
+            <div class="form-stack">
+              <div class="form-group">
+                <label class="form-label" for="d-name">Doctor Name</label>
+                <input id="d-name" type="text" class="form-input" placeholder="Dr. Full Name" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="d-dept">Department / Speciality</label>
+                <select id="d-dept" class="form-select" required>
+                  <option value="" disabled selected>Select Medical Speciality...</option>
+                  <option value="Cardiologist">Cardiologist</option>
+                  <option value="Neurologist">Neurologist</option>
+                  <option value="Pulmonologist">Pulmonologist</option>
+                  <option value="General Physician">General Physician</option>
+                  <option value="Orthopedist">Orthopedist</option>
+                  <option value="Pediatrician">Pediatrician</option>
+                  <option value="Dermatologist">Dermatologist</option>
+                  <option value="ENT Specialist">ENT Specialist</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="d-phone">Phone (10 digits)</label>
+                <input id="d-phone" type="tel" class="form-input" placeholder="Acts as username/login ID" maxlength="10"
+                  required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="d-password">Password</label>
+                <div style="position:relative;">
+                  <input id="d-password" type="password" class="form-input" placeholder="Temporary password" required
+                    style="padding-right:2.5rem;">
+                  <button type="button" id="toggle-d-password"
+                    style="position:absolute; right:.4rem; top:50%; transform:translateY(-50%); background:transparent; border:none; color:var(--txt-300); cursor:pointer; font-size:1.1rem; padding:.2rem;">👁️</button>
+                </div>
+                <span class="sub" style="margin-top:.3rem;">This password will be used by the doctor to log in</span>
+              </div>
+              <button type="submit" class="btn btn-primary" id="add-doctor-btn">Create Doctor & Login Profile →</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── ADD BED SECTION ─────────────────────────────────── -->
+      <div class="section" id="section-add-bed">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Add Hospital Bed</div>
+            <div class="page-sub">Register a new bed into the system</div>
+          </div>
+        </div>
+
+        <div class="card form-card fade-in">
+          <form id="add-bed-form" novalidate>
+            <div class="form-stack">
+              <div class="form-group">
+                <label class="form-label" for="b-ward">Target Ward</label>
+                <select id="b-ward" class="form-select" required>
+                  <option value="" disabled selected>Select Ward...</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="b-num">Bed Number</label>
+                <input id="b-num" type="number" class="form-input" placeholder="e.g. 101" min="1" required>
+              </div>
+              <button type="submit" class="btn btn-primary" id="add-bed-btn">Register Bed →</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── PREDICTIVE ANALYTICS SECTION ─────────────────────── -->
+      <div class="section" id="section-analytics">
+        <div class="page-header" style="flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <div class="page-title">Predictive Analytics</div>
+            <div class="page-sub">Resource forecasting and load insights</div>
+          </div>
+          <div style="display:flex;gap:.5rem;">
+            
+            <a class="btn btn-primary btn-sm" href="#" onclick="window.open((window.API_BASE_URL || 'http://localhost:8000') + '/analytics/export', '_blank'); return false;">Export
+              Report</a>
+          </div>
+        </div>
+
+        <div class="stats-grid" style="margin-bottom:2rem;">
+          <div class="stat-card c-accent">
+            <div class="stat-value" id="a-wait">—</div>
+            <div class="stat-label">Avg Wait Time</div>
+          </div>
+          <div class="stat-card c-danger">
+            <div class="stat-value" id="a-bed-occ">—</div>
+            <div class="stat-label">Bed Occupancy</div>
+          </div>
+          <div class="stat-card c-primary">
+            <div class="stat-value" id="a-today">—</div>
+            <div class="stat-label">Patients Today</div>
+          </div>
+          <div class="stat-card c-warn">
+            <div class="stat-value" id="a-forecast">—</div>
+            <div class="stat-label">Predicted Load (Tmrw)</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div
+          style="display:grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
+          <div class="card" style="background:var(--clr-glass);">
+            <div class="section-title" style="font-size:1rem;">Daily Patient Load (7 Days)</div>
+            <div style="height:220px; position:relative;"><canvas id="chart-daily-load"></canvas></div>
+          </div>
+          <div class="card" style="background:var(--clr-glass);">
+            <div class="section-title" style="font-size:1rem;">Department Distribution</div>
+            <div style="height:220px; position:relative;"><canvas id="chart-dept-dist"></canvas></div>
+          </div>
+
+          <!-- NEW: Bed Demand Prediction -->
+          <div class="card"
+            style="background:var(--clr-glass); grid-column: 1 / -1; display:flex; align-items:center; gap:1.5rem; padding: 1.5rem;">
+            <div style="font-size:2.5rem;" id="bed-risk-icon">🟢</div>
+            <div>
+              <div class="section-title" style="font-size:1.1rem; margin-bottom:.25rem;">Tomorrow's Bed Demand</div>
+              <div style="color:var(--txt-200); font-size:.9rem;" id="bed-risk-text">Loading projection...</div>
+            </div>
+          </div>
+
+          <div class="card" style="background:var(--clr-glass);">
+            <div class="section-title" style="font-size:1rem;">Predicted Patient Load — Next 7 Days</div>
+            <div style="height:250px; position:relative;"><canvas id="chart-forecast"></canvas></div>
+          </div>
+
+          <div class="card" style="background:var(--clr-glass);">
+            <div class="section-title" style="font-size:1rem;">Average Patients by Hour</div>
+            <div style="height:250px; position:relative;"><canvas id="chart-hourly"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- History Modal -->
+  <div id="history-modal"
+    style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.8); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div class="card" style="width:100%; max-width:600px; max-height:80vh; overflow-y:auto; position:relative;">
+      <button class="btn btn-ghost"
+        style="position:absolute; top:1rem; right:1rem; padding:.4rem .6rem; border-radius:50%;"
+        onclick="document.getElementById('history-modal').style.display='none'">✕</button>
+      <h2 style="margin-bottom:.5rem;">Patient History</h2>
+      <div id="hm-patient-info" style="color:var(--txt-200); font-size:.9rem; margin-bottom:1.5rem;"></div>
+      <div id="hm-content">Loading...</div>
+    </div>
+  </div>
+
+  <script src="script.js?v=3"></script>
+  <script>
+    requireRole('admin');
+    const { userId } = getSession();
+    let lastMsgId = 0;
+    let _currentMaxMsgId = 0;
+    let _lastSeenAdmissionCount = 0; // track when admission section was last viewed
+    let _allTodayPatients = [];   // Cache for client-side filter
+
+    /* ── Section Navigation ──────────────────────────────────── */
+    function showSection(navEl) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      navEl.classList.add('active');
+
+      const sectionId = navEl.dataset.section;
+      document.getElementById('section-' + sectionId).classList.add('active');
+
+      // Update URL hash without hard reload
+      if (history.replaceState) {
+        history.replaceState(null, null, '#' + sectionId);
+      }
+
+      if (sectionId === 'admitted') loadAdmitted();
+      if (sectionId === 'admission-requests') {
+        loadAdmissionRequests();
+        // Mark admission requests as read — clear red dot
+        document.getElementById('admission-red-dot').classList.remove('show');
+        document.getElementById('admission-req-badge').style.display = 'none';
+        _lastSeenAdmissionCount = 0; // will be reset on next poll from current count
+      }
+      if (sectionId === 'messages') {
+        loadMessages();
+        document.getElementById('msg-badge').style.display = 'none';
+        _currentMaxMsgId = lastMsgId;
+      }
+      if (sectionId === 'live-queues') loadLiveQueues();
+      if (sectionId === 'today') loadTodayPatients();
+      if (sectionId === 'analytics') loadAnalytics();
+      if (sectionId === 'add-bed') loadWardsSelector();
+    }
+
+    /* ── Wards Selector (For Add Bed) ───────────────────────── */
+    async function loadWardsSelector() {
+      try {
+        const bedSummary = await api('/ward-bed-summary');
+        const select = document.getElementById('b-ward');
+        select.innerHTML = '<option value="" disabled selected>Select Ward...</option>' +
+          bedSummary.map(w => {
+            const isHighCapacity = w.free <= (w.total * 0.2) && w.total > 0;
+            const alertText = isHighCapacity ? ' ⚠️ High Capacity' : '';
+            return `<option value="${w.id}">${w.name} (${w.free}/${w.total} free)${alertText}</option>`;
+          }).join('');
+      } catch (err) {
+        showToast('Failed to load wards: ' + err.message, 'error');
+      }
+    }
+
+    /* ── Stats ──────────────────────────────────────────────── */
+    async function loadStats() {
+      try {
+        const stats = await api('/adminStats');
+
+        animateCount(document.getElementById('s-today'), stats.total_patients_today);
+        animateCount(document.getElementById('s-waiting'), stats.waiting);
+        animateCount(document.getElementById('s-serving'), stats.serving);
+        animateCount(document.getElementById('s-admitted'), stats.admitted);
+        animateCount(document.getElementById('s-beds'), stats.beds_available);
+        animateCount(document.getElementById('s-doctors'), stats.total_doctors);
+
+        document.getElementById('refresh-time').textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+        // Update admitted badge
+        const admBadge = document.getElementById('admitted-badge');
+        if (stats.admitted > 0) {
+          admBadge.textContent = stats.admitted;
+          admBadge.style.display = '';
+        } else {
+          admBadge.style.display = 'none';
+        }
+
+        // Update live queues badge (waiting + serving)
+        const activePts = stats.waiting + stats.serving;
+        const lvBadge = document.getElementById('live-badge');
+        if (activePts > 0) {
+          lvBadge.textContent = activePts;
+          lvBadge.style.display = '';
+        } else {
+          lvBadge.style.display = 'none';
+        }
+
+      } catch (err) {
+        showToast('Failed to load stats: ' + err.message, 'error');
+      }
+    }
+
+    /* ── Live Queues ─────────────────────────────────────────── */
+    let liveQueueInterval = null;
+
+    async function loadLiveQueues() {
+      const grid = document.getElementById('live-queue-grid');
+      try {
+        const doctors = await api('/doctors');
+        if (!doctors.length) {
+          grid.innerHTML = '<div class="admit-empty">No doctors added yet. Use Add Doctor to create profiles.</div>';
+          return;
+        }
+
+        // Fetch queues + serving for each doctor in parallel
+        const results = await Promise.allSettled(
+          doctors.map(async (d) => {
+            const [queue, serving] = await Promise.all([
+              api(`/queue/${d.id}`).catch(() => []),
+              api(`/currentServing/${d.id}`).catch(() => null),
+            ]);
+            return { doctor: d, queue, serving };
+          })
+        );
+
+        const renderPromises = results.map(r => {
+          if (r.status === 'rejected') return Promise.resolve('');
+          const { doctor: d, queue, serving } = r.value;
+          const waitCount = queue.length;
+          const isServing = serving && serving.token_number;
+
+          return (async () => {
+            let firstWait = '—';
+            if (waitCount > 0) {
+              try {
+                const pred = await api(`/predict-wait-time/${queue[0].visit_id}`);
+                firstWait = pred.estimated_wait_time === 0 ? '0m' : `~${pred.estimated_wait_time}m`;
+              } catch (e) {
+                firstWait = '—';
+              }
+            }
+
+            return `
+            <div class="doctor-queue-card">
+              <div class="dq-header">
+                <div class="dq-avatar">🩺</div>
+                <div>
+                  <div class="dq-name">Dr. ${d.name}</div>
+                  <div class="dq-dept">${d.department}</div>
+                </div>
+              </div>
+              <div class="dq-stats">
+                <div class="dq-chip">
+                  <div class="dqc-val" style="color:${waitCount > 0 ? '#ffc83d' : 'var(--txt-300)'}">${waitCount}</div>
+                  <div class="dqc-lbl">Waiting</div>
+                </div>
+                <div class="dq-chip">
+                  <div class="dqc-val" style="color:${isServing ? '#3d8bff' : 'var(--txt-300)'}">${isServing ? '1' : '0'}</div>
+                  <div class="dqc-lbl">Serving</div>
+                </div>
+                <div class="dq-chip">
+                  <div class="dqc-val" style="color:var(--txt-300);font-size:1rem;">${firstWait}</div>
+                  <div class="dqc-lbl">1st Wait</div>
+                </div>
+              </div>
+              ${isServing ? `<div class="dq-serving-name">🔴 Now: ${serving.name} (Token #${serving.token_number})</div>` : ''}
+            </div>`;
+          })();
+        });
+
+        const htmls = await Promise.all(renderPromises);
+        grid.innerHTML = htmls.join('');
+
+      } catch (err) {
+        grid.innerHTML = `<div class="admit-empty">Failed to load queues: ${err.message}</div>`;
+      }
+    }
+
+    /* ── Today's Patients ────────────────────────────────────── */
+    async function loadTodayPatients() {
+      try {
+        _allTodayPatients = await api('/todayPatients');
+        renderTodayPatients(_allTodayPatients);
+      } catch (err) {
+        showToast('Failed to load today\'s patients: ' + err.message, 'error');
+      }
+    }
+
+    function statusPill(status) {
+      const cls = `status-pill status-${status}`;
+      const icons = { waiting: '', serving: '', completed: '', admitted: '', discharged: '' };
+      return `<span class="${cls}">${icons[status] || ''} ${status}</span>`;
+    }
+
+    function renderTodayPatients(patients) {
+      const tbody = document.getElementById('today-body');
+      if (!patients.length) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon"></div><div>No patients registered today</div></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = patients.map(p => {
+        let actionHtml = '—';
+        if (p.status === 'waiting') {
+          actionHtml = `
+           <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+             <button class="btn btn-sm" style="background:rgba(61,139,255,.15);border:1px solid rgba(61,139,255,.3);color:#3d8bff;" onclick="autoAssignDoctor(${p.visit_id}, this)">🔄 Auto Assign</button>
+             <button class="btn btn-sm" style="background:rgba(255,86,119,.12);border:1px solid rgba(255,86,119,.3);color:#ff5677;" onclick="cancelByAdmin(${p.visit_id}, this)">❌ Cancel / No-Show</button>
+           </div>`;
+        }
+
+        return `
+      <tr>
+        <td><strong>#${p.token_number}</strong></td>
+        <td>
+          <div style="font-weight:600;">${p.name}</div>
+          ${p.phone ? `<button class="btn btn-sm btn-ghost" style="padding:.15rem .45rem; margin-top:.3rem; font-size:.7rem;" onclick="viewHistory('${p.phone}')">History</button>` : ''}
+        </td>
+        <td>${p.age} yrs</td>
+        <td style="font-size:.82rem;color:var(--clr-primary);">${p.doctor}</td>
+        <td><span class="badge badge-muted" style="font-size:.72rem;">${p.priority}</span></td>
+        <td>${statusPill(p.status)}</td>
+        <td style="font-size:.78rem;color:var(--txt-300);">${relativeTime(p.created_at)}</td>
+        <td>${actionHtml}</td>
+      </tr>`;
+      }).join('');
+    }
+
+    async function viewHistory(phone) {
+      if (!phone) { showToast('No phone number available', 'error'); return; }
+      const modal = document.getElementById('history-modal');
+      modal.style.display = 'flex';
+      document.getElementById('hm-content').innerHTML = '<div style="text-align:center;padding:2rem;">Loading history...</div>';
+      document.getElementById('hm-patient-info').textContent = 'Phone: ' + phone;
+
+      try {
+        const res = await api('/patient-history/' + phone);
+        document.getElementById('hm-patient-info').textContent = `${res.name} | Phone: ${res.phone}`;
+
+        if (!res.history || res.history.length === 0) {
+          document.getElementById('hm-content').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--txt-300);">No past visits found.</div>';
+          return;
+        }
+
+        const html = res.history.map(v => `
+        <div style="background:rgba(255,255,255,.04); border:1px solid var(--clr-border); padding:1rem; border-radius:var(--radius-sm); margin-bottom:.75rem;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:.5rem;">
+            <strong>${v.date}</strong>
+            ${statusPill(v.status)}
+          </div>
+          <div style="font-size:.85rem; color:var(--txt-200);">
+            <div> ${v.doctor} (${v.department})</div>
+            <div style="margin-top:.25rem;"><strong>Problem:</strong> ${v.problem}</div>
+          </div>
+        </div>
+      `).join('');
+
+        document.getElementById('hm-content').innerHTML = html;
+
+      } catch (e) {
+        document.getElementById('hm-content').innerHTML = `<div style="text-align:center;padding:2rem;color:var(--clr-danger);">Failed to load: ${e.message}</div>`;
+      }
+    }
+
+    async function cancelByAdmin(visitId, btn) {
+      const confirmed = await showConfirm('Cancel this appointment? This marks the patient as a no-show and removes them from the queue.', ' Cancel');
+      if (!confirmed) return;
+      setLoading(btn, true);
+      try {
+        await api(`/cancel/${visitId}`, 'POST');
+        showToast('Appointment cancelled — patient marked as no-show.', 'success');
+        await new Promise(r => setTimeout(r, 600));
+        await loadTodayPatients();
+        await loadStats();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally { setLoading(btn, false); }
+    }
+
+    async function autoAssignDoctor(visitId, btn) {
+      setLoading(btn, true);
+      try {
+        const res = await api('/auto-assign-doctor', 'POST', { patient_id: visitId });
+        showToast(res.message + ' (' + res.assigned_doctor + ')', 'success');
+        await loadTodayPatients();
+        await loadLiveQueues();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    function filterToday() {
+      const q = document.getElementById('today-search').value.toLowerCase();
+      const status = document.getElementById('today-filter-status').value;
+      const filtered = _allTodayPatients.filter(p => {
+        const matchSearch = !q || p.name.toLowerCase().includes(q) || String(p.token_number).includes(q) || (p.phone && p.phone.includes(q));
+        const matchStatus = !status || p.status === status;
+        return matchSearch && matchStatus;
+      });
+      renderTodayPatients(filtered);
+    }
+
+    /* ── Admitted Patients ───────────────────────────────────── */
+    async function loadAdmitted() {
+      try {
+        const patients = await api('/admittedPatients');
+        renderAdmitted(patients);
+      } catch (err) {
+        showToast('Failed to load admitted patients: ' + err.message, 'error');
+      }
+    }
+
+    function renderAdmitted(patients) {
+      const tbody = document.getElementById('admitted-body');
+      if (!patients.length) {
+        tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-icon"></div><div>No patients currently admitted</div></div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = patients.map(p => `
+      <tr>
+        <td><strong>Bed #${p.bed_number}</strong></td>
+        <td>${p.name}</td>
+        <td style="max-width:200px;white-space:normal;">${p.problem || '—'}</td>
+        <td>
+          <button
+            class="btn btn-sm"
+            style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.35);color:#ff6b6b;"
+            onclick="dischargePatient(${p.visit_id}, this)">
+            🚪 Discharge
+          </button>
+        </td>
+      </tr>`).join('');
+    }
+
+    async function dischargePatient(visitId, btn) {
+      const confirmed = await showConfirm('Discharge this patient and free the bed?', '🚪');
+      if (!confirmed) return;
+      setLoading(btn, true);
+      try {
+        await api(`/dischargePatient/${visitId}`, 'POST');
+        showToast('Patient discharged — bed is now free ✅', 'success');
+        // Delay data refresh so toast is readable before DOM re-render
+        await new Promise(r => setTimeout(r, 800));
+        await loadAdmitted();
+        await loadStats();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally { setLoading(btn, false); }
+    }
+
+    /* ── Admission Requests ──────────────────────────────────── */
+    async function loadAdmissionRequests() {
+      try {
+        const [data, bedSummary] = await Promise.all([
+          api('/admissionRequests'),
+          api('/ward-bed-summary')
+        ]);
+        const requests = data.requests || [];
+        const wards = data.wards || [];
+
+        renderAdmissionRequests(requests, wards, bedSummary);
+
+        const reqBadge = document.getElementById('admission-req-badge');
+        if (requests.length > 0) {
+          reqBadge.textContent = requests.length;
+          reqBadge.style.display = '';
+        } else {
+          reqBadge.style.display = 'none';
+        }
+      } catch (err) {
+        showToast('Failed to load admission requests: ' + err.message, 'error');
+      }
+    }
+
+    function renderAdmissionRequests(requests, wards, bedSummary) {
+      const tbody = document.getElementById('admission-req-body');
+      if (!requests.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">✅</div><div>No pending admission requests</div></div></td></tr>`;
+        return;
+      }
+
+      // Show bed availability strip above table
+      let bedStripEl = document.getElementById('bed-avail-strip');
+      if (!bedStripEl) {
+        bedStripEl = document.createElement('div');
+        bedStripEl.id = 'bed-avail-strip';
+        bedStripEl.style.cssText = 'display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;';
+        document.getElementById('admission-req-table').parentElement.insertBefore(bedStripEl, document.getElementById('admission-req-table'));
+      }
+      if (bedSummary && bedSummary.length) {
+        bedStripEl.innerHTML = bedSummary.map(w => {
+          const color = w.free === 0 ? '#ff5677' : (w.free <= 1 ? '#ffaa33' : '#00d4aa');
+          return `<span style="padding:.35rem .75rem;border-radius:6px;font-size:.8rem;font-weight:600;
+          background:rgba(255,255,255,.04);border:1px solid ${color};color:${color};">
+          ${w.name}: ${w.free}/${w.total} free</span>`;
+        }).join('');
+      }
+
+      // Change Header from Assign Bed # to Target Ward Selection
+      document.querySelector('#admission-req-table thead tr th:nth-child(5)').textContent = 'Target Ward';
+
+      tbody.innerHTML = requests.map(r => {
+        // Preselect suggested ward if possible
+        const suggestedWardId = wards.find(w => w.name === r.suggested_bed)?.id || '';
+
+        // Generate Ward options with bed counts
+        const wardOptionsHTML = wards.map(w => {
+          const isSelected = w.id === suggestedWardId ? 'selected' : '';
+          const bs = bedSummary ? bedSummary.find(b => b.id === w.id) : null;
+          const countLabel = bs ? ` (${bs.free} free)` : '';
+          return `<option value="${w.id}" ${isSelected}>${w.name}${countLabel}</option>`;
+        }).join('');
+
+        return `
+      <tr>
+        <td><strong>${r.name}</strong> (${r.age} yrs)</td>
+        <td><span style="font-size:.82rem;color:var(--clr-primary);">${r.doctor}</span></td>
+        <td><span class="badge badge-warn">${r.condition}</span></td>
+        <td><strong>${r.suggested_bed}</strong></td>
+        <td>
+           <select id="ward-select-${r.visit_id}" class="form-select" style="padding:.2rem; font-size:.85rem;">
+               ${wardOptionsHTML}
+           </select>
+        </td>
+        <td>
+          <button
+            class="btn btn-sm btn-primary"
+            onclick="confirmAdmission(${r.visit_id}, this)">
+            Assign Bed
+          </button>
+        </td>
+      </tr>`}).join('');
+    }
+
+    async function confirmAdmission(visitId, btn) {
+      const wardSelect = document.getElementById(`ward-select-${visitId}`);
+      const selectedWardId = wardSelect ? parseInt(wardSelect.value) : null;
+
+      // Payload can be empty for pure auto-suggestion, or supply manual override ward
+      const payload = {};
+      if (selectedWardId && !isNaN(selectedWardId)) {
+        payload.ward_id = selectedWardId;
+      }
+
+      setLoading(btn, true);
+      try {
+        const res = await api(`/confirm-admission/${visitId}`, 'POST', payload);
+        showToast(res.message, 'success');
+        // Delay data refresh so toast is readable before DOM re-render
+        await new Promise(r => setTimeout(r, 800));
+        await loadAdmissionRequests();
+        await loadStats();
+        await loadLiveQueues();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally { setLoading(btn, false); }
+    }
+
+    /* ── Messages ────────────────────────────────────────────── */
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function loadMessages() {
+      try {
+        const msgs = await api('/messages');
+        const thread = document.getElementById('msg-thread');
+        const myId = parseInt(userId);
+
+        if (!msgs.length) {
+          thread.innerHTML = `<div style="text-align:center;color:var(--txt-300);font-size:.83rem;margin:auto;">No messages yet. Doctors can message you from their dashboard.</div>`;
+          return;
+        }
+
+        thread.innerHTML = msgs.map(m => {
+          const isMine = m.sender_id === myId && m.sender_role === 'admin';
+          const cls = isMine ? 'sent' : 'received';
+          let who = '';
+          if (isMine) {
+            who = 'You (Admin)';
+          } else if (m.sender_role === 'admin') {
+            who = 'Admin / Reception';
+          } else {
+            who = `🩺 ${m.sender_name || 'Doctor (ID: ' + m.sender_id + ')'}`;
+          }
+          return `
+          <div class="msg-bubble ${cls}">
+            <div>${escapeHtml(m.message)}</div>
+            <div class="msg-meta">${who} · ${relativeTime(m.timestamp)}</div>
+          </div>`;
+        }).join('');
+
+        thread.scrollTop = thread.scrollHeight;
+
+        // Update badge tracking
+        const newMax = msgs.length ? Math.max(...msgs.map(m => m.id)) : 0;
+        if (newMax > _currentMaxMsgId) {
+          const msgSection = document.getElementById('section-messages');
+          const isActive = msgSection.classList.contains('active');
+          if (!isActive && _currentMaxMsgId > 0) {
+            const badge = document.getElementById('msg-badge');
+            badge.textContent = msgs.filter(m => m.id > _currentMaxMsgId).length;
+            badge.style.display = '';
+          }
+          _currentMaxMsgId = newMax;
+          lastMsgId = newMax;
+        }
+      } catch (_) { }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('msg-input');
+      const btn = document.getElementById('msg-send-btn');
+      const text = input.value.trim();
+      if (!text) return;
+
+      setLoading(btn, true);
+      try {
+        await api('/sendMessage', 'POST', {
+          sender_role: 'admin',
+          sender_id: parseInt(userId),
+          message: text,
+        });
+        input.value = '';
+        await loadMessages();
+      } catch (err) {
+        showToast('Failed to send message: ' + err.message, 'error');
+      } finally { setLoading(btn, false); }
+    }
+
+    /* ── Add Doctor Form ─────────────────────────────────────── */
+    document.getElementById('add-doctor-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('add-doctor-btn');
+      const name = document.getElementById('d-name').value.trim();
+      const department = document.getElementById('d-dept').value.trim();
+      const phone = document.getElementById('d-phone').value.trim();
+      const password = document.getElementById('d-password').value.trim();
+
+      if (!name || !department || !phone || !password) {
+        showToast('Please fill all fields.', 'warn'); return;
+      }
+      if (name.length < 2) {
+        showToast('Doctor name must be at least 2 characters.', 'warn'); return;
+      }
+      if (!/^[A-Za-z\s.]+$/.test(name)) {
+        showToast('Doctor name can only contain letters, spaces, and dots.', 'warn'); return;
+      }
+      if (department.length < 2) {
+        showToast('Department must be at least 2 characters.', 'warn'); return;
+      }
+      if (phone.length !== 10 || !/^\d+$/.test(phone)) {
+        showToast('Phone must be exactly 10 digits.', 'warn'); return;
+      }
+      if (password.length < 4) {
+        showToast('Password must be at least 4 characters.', 'warn'); return;
+      }
+
+      setLoading(btn, true);
+      try {
+        await api('/addDoctor', 'POST', { name, department, phone, password });
+        showToast('Doctor profile and login created!', 'success');
+        document.getElementById('add-doctor-form').reset();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally { setLoading(btn, false); }
+    });
+
+    /* ── Add Bed Form ────────────────────────────────────────── */
+    document.getElementById('add-bed-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('add-bed-btn');
+      const bed_number = parseInt(document.getElementById('b-num').value);
+      const ward_id = parseInt(document.getElementById('b-ward').value);
+
+      if (isNaN(bed_number) || bed_number <= 0) {
+        showToast('Bed number must be 1 or greater.', 'warn');
+        return;
+      }
+      if (isNaN(ward_id)) {
+        showToast('Please select a Ward.', 'warn');
+        return;
+      }
+
+      setLoading(btn, true);
+      try {
+        await api('/addBed', 'POST', { bed_number, ward_id });
+        showToast(`Bed #${bed_number} registered!`, 'success');
+        document.getElementById('add-bed-form').reset();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally { setLoading(btn, false); }
+    });
+
+    /* ── Predictive Analytics ────────────────────────────────── */
+    let chartDailyLoad, chartDeptDist, chartForecast, chartHourly;
+    async function loadAnalytics() {
+      try {
+        const data = await api('/analytics/dashboard');
+        const forecastData = await api('/analytics/forecast');
+        const hourlyData = await api('/analytics/hourly-heatmap');
+        const bedForecast = await api('/analytics/bed-forecast');
+
+        // Update KPIs
+        document.getElementById('a-today').textContent = data.today_patients;
+        document.getElementById('a-bed-occ').textContent = Math.round(data.bed_occupancy * 100) + '%';
+        document.getElementById('a-wait').textContent = data.average_wait_time + ' min';
+        document.getElementById('a-forecast').textContent = data.forecast_next_day;
+
+        // Update Bed Forecast Card
+        const riskIcon = bedForecast.risk_level.includes('🟢') ? '🟢' : (bedForecast.risk_level.includes('🔴') ? '🔴' : '🟡');
+        document.getElementById('bed-risk-icon').textContent = riskIcon;
+        document.getElementById('bed-risk-text').innerHTML = `<strong>~${bedForecast.predicted_admissions} admissions</strong> expected Tomorrow. We have <strong>${bedForecast.current_free_beds} beds</strong> free → ${bedForecast.risk_level}`;
+
+        // Show Alerts via toast notifications to stay consistent
+        if (data.alerts && data.alerts.length > 0) {
+          data.alerts.forEach(a => {
+            showToast(`⚠️ Analytics Alert: ${a}`, 'warn');
+          });
+        }
+
+        // Render Charts
+        renderCharts(data, forecastData, hourlyData);
+
+      } catch (err) {
+        showToast('Failed to load analytics: ' + err.message, 'error');
+      }
+    }
+
+    function renderCharts(data, forecastData, hourlyData) {
+      // Shared chart options for dark mode
+      Chart.defaults.color = '#a0aec0';
+      Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+
+      // 1. Daily Patient Load
+      const dates = data.last_7_days.map(d => d.date.substring(5)); // MM-DD
+      const counts = data.last_7_days.map(d => d.count);
+
+      if (chartDailyLoad) chartDailyLoad.destroy();
+      chartDailyLoad = new Chart(document.getElementById('chart-daily-load'), {
+        type: 'bar',
+        data: {
+          labels: dates,
+          datasets: [{
+            label: 'Patients',
+            data: counts,
+            backgroundColor: '#3d8bff',
+            borderRadius: 4
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // 2. Department Distribution
+      const deptLabels = Object.keys(data.department_distribution);
+      const deptData = Object.values(data.department_distribution);
+
+      if (chartDeptDist) chartDeptDist.destroy();
+      chartDeptDist = new Chart(document.getElementById('chart-dept-dist'), {
+        type: 'doughnut',
+        data: {
+          labels: deptLabels.length ? deptLabels : ['None'],
+          datasets: [{
+            data: deptData.length ? deptData : [1],
+            backgroundColor: ['#3d8bff', '#00d4aa', '#ffc83d', '#ff5677', '#a855f7', '#64748b'],
+            borderWidth: 0
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+      });
+
+      // 3. 7-Day Forecast
+      const fDates = forecastData.map(d => d.date.substring(5));
+      const fCounts = forecastData.map(d => d.predicted_count);
+      if (chartForecast) chartForecast.destroy();
+      chartForecast = new Chart(document.getElementById('chart-forecast'), {
+        type: 'line',
+        data: {
+          labels: fDates,
+          datasets: [
+            {
+              label: 'Predicted',
+              data: fCounts,
+              borderColor: '#ffc83d',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              tension: 0.3,
+              pointBackgroundColor: '#ffc83d',
+              pointRadius: 6,
+              fill: false
+            }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // 4. Hourly Heatmap
+      const hours = hourlyData.map(d => d.hour + ':00');
+      const hCounts = hourlyData.map(d => d.avg_count);
+
+      // Find peak hour index to highlight
+      const peakIndex = hCounts.indexOf(Math.max(...hCounts));
+      const bgColors = hCounts.map((_, i) => i === peakIndex ? '#ff5677' : '#3d8bff');
+
+      if (chartHourly) chartHourly.destroy();
+      chartHourly = new Chart(document.getElementById('chart-hourly'), {
+        type: 'bar',
+        data: {
+          labels: hours,
+          datasets: [{
+            label: 'Avg Patients',
+            data: hCounts,
+            backgroundColor: bgColors,
+            borderRadius: 3
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    /* ── Init ────────────────────────────────────────────────── */
+    loadStats();
+
+    /* ── Red Dot Notification Polling (every 5s) ──────────────── */
+    async function checkNotifications() {
+      // 1. Unread doctor messages (badge only, no red dot)
+      try {
+        const msgRes = await api(`/admin/unread-messages-count?since_id=${_currentMaxMsgId}`);
+        const msgBadge = document.getElementById('msg-badge');
+        const msgSection = document.getElementById('section-messages');
+        if (msgRes.count > 0 && !msgSection.classList.contains('active')) {
+          msgBadge.textContent = msgRes.count;
+          msgBadge.style.display = '';
+        }
+      } catch (_) { }
+
+      // 2. Pending admission requests
+      try {
+        const admRes = await api('/admin/pending-admissions-count');
+        const admDot = document.getElementById('admission-red-dot');
+        const reqBadge = document.getElementById('admission-req-badge');
+        const admSection = document.getElementById('section-admission-requests');
+        if (admRes.count > 0) {
+          reqBadge.textContent = admRes.count;
+          reqBadge.style.display = '';
+          if (!admSection.classList.contains('active')) {
+            admDot.classList.add('show');
+          }
+        } else {
+          reqBadge.style.display = 'none';
+          admDot.classList.remove('show');
+        }
+      } catch (_) { }
+    }
+
+    // Poll stats + messages every 15s
+    setInterval(() => {
+      loadStats();
+      loadMessages(); // silent poll for badge
+      // If Live Queues tab is active, refresh it too
+      if (document.getElementById('section-live-queues').classList.contains('active')) {
+        loadLiveQueues();
+      }
+    }, 15000);
+
+    // Poll notification red dots every 5s (lightweight count-only calls)
+    checkNotifications();
+    window.addEventListener('mq-update', checkNotifications);
+
+    // Parse URL Hash on Load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.location.hash) {
+        const targetSection = window.location.hash.substring(1);
+        const targetNavEl = document.querySelector(`.nav-item[data-section="${targetSection}"]`);
+        if (targetNavEl) {
+          showSection(targetNavEl);
+        }
+      }
+    });
+
+    document.getElementById('toggle-d-password').addEventListener('click', function () {
+      const passwordInput = document.getElementById('d-password');
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      this.innerHTML = type === 'password' ? '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+    });
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+          console.log('SW registered!', reg.scope);
+        }).catch(err => {
+          console.log('SW registration failed: ', err);
+        });
+      });
+    }
+  </script>
+</body>
+
+</html>

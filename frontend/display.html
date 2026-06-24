@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediQueue — Live Queue Display</title>
+  <meta name="description" content="MediQueue public token display board — live queue information.">
+  <link rel="stylesheet" href="style.css?v=3">
+  <style>
+    /* ── Display Board layout ── */
+    body {
+      background: #050c16;
+      overflow-x: hidden;
+    }
+
+    .display-wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(13, 24, 41, .9);
+      border-bottom: 1px solid var(--clr-border);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .clock {
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--clr-primary);
+    }
+
+    /* Doctor selector */
+    .doc-selector-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 2rem;
+      background: rgba(13, 24, 41, .6);
+      border-bottom: 1px solid var(--clr-border);
+    }
+
+    .doc-selector-row label {
+      font-size: .85rem;
+      color: var(--txt-200);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    #doc-select {
+      max-width: 250px;
+    }
+
+    /* Content grid */
+    .display-content {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 0;
+    }
+
+    /* Left: Now Serving */
+    .panel-serving {
+      background: rgba(0, 198, 167, .05);
+      border-right: 1px solid var(--clr-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1.5rem;
+      min-height: 75vh;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Subtle pulse behind the token */
+    .serving-glow {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(0, 198, 167, 0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    .panel-serving.has-patient .serving-glow {
+      opacity: 1;
+      animation: slowPulse 4s infinite alternate;
+    }
+
+    @keyframes slowPulse {
+      0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.1;
+      }
+
+      100% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0.25;
+      }
+    }
+
+    .ns-label {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      color: var(--clr-primary);
+      margin-bottom: .75rem;
+      z-index: 1;
+    }
+
+    .ns-token {
+      font-size: clamp(5rem, 12vw, 9rem);
+      font-weight: 900;
+      line-height: 1;
+      color: var(--clr-primary);
+      filter: drop-shadow(0 0 24px rgba(0, 198, 167, .5));
+      animation: none;
+      z-index: 1;
+    }
+
+    .ns-token.active {
+      animation: tokenPop .6s cubic-bezier(.175, .885, .32, 1.275) forwards;
+    }
+
+    .ns-name {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--txt-100);
+      margin-top: .75rem;
+      z-index: 1;
+    }
+
+    .ns-empty {
+      color: var(--txt-300);
+      font-size: 1rem;
+      margin-top: 1rem;
+      z-index: 1;
+    }
+
+    @keyframes tokenPop {
+      0% {
+        transform: scale(.5) translateY(20px);
+        opacity: 0;
+        filter: drop-shadow(0 0 0px rgba(0, 198, 167, 0));
+      }
+
+      50% {
+        transform: scale(1.1) translateY(-10px);
+        opacity: 1;
+        filter: drop-shadow(0 0 40px rgba(0, 198, 167, .8));
+      }
+
+      100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+        filter: drop-shadow(0 0 24px rgba(0, 198, 167, .5));
+      }
+    }
+
+    /* Right: Queue list */
+    .panel-queue {
+      padding: 2rem 2rem;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .panel-queue h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--txt-200);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .queue-row {
+      display: flex;
+      align-items: center;
+      padding: .9rem 1.1rem;
+      margin-bottom: .55rem;
+      background: var(--clr-glass);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      gap: 1rem;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      transition: all .3s cubic-bezier(.25, .8, .25, 1);
+      animation: slideInRight .4s ease-out both;
+    }
+
+    @keyframes slideInRight {
+      0% {
+        transform: translateX(30px);
+        opacity: 0;
+      }
+
+      100% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Highlight the next person in line */
+    .queue-row.next-up {
+      border-color: rgba(61, 139, 255, 0.4);
+      background: rgba(61, 139, 255, 0.08);
+      transform: scale(1.02);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .queue-row.next-up .qr-token {
+      color: #3d8bff;
+    }
+
+    .qr-pos {
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--txt-300);
+      min-width: 28px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+    }
+
+    .queue-row.next-up .qr-pos {
+      background: rgba(61, 139, 255, 0.2);
+      color: #3d8bff;
+    }
+
+    .qr-token {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--txt-100);
+      min-width: 64px;
+    }
+
+    .qr-name {
+      flex: 1;
+      font-size: .95rem;
+      font-weight: 500;
+    }
+
+    .qr-wait {
+      font-size: .82rem;
+      color: var(--txt-300);
+      text-align: right;
+    }
+
+    /* Ticker */
+    .ticker-bar {
+      overflow: hidden;
+      white-space: nowrap;
+      padding: .6rem 0;
+      background: linear-gradient(90deg, var(--clr-primary), var(--clr-accent));
+      font-size: .9rem;
+      font-weight: 700;
+      color: #000;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .ticker-inner {
+      display: inline-block;
+      animation: ticker 30s linear infinite;
+    }
+
+    .ticker-inner:hover {
+      animation-play-state: paused;
+    }
+
+    @keyframes ticker {
+      0% {
+        transform: translateX(100vw);
+      }
+
+      100% {
+        transform: translateX(-100%);
+      }
+    }
+
+    /* Refresh indicator */
+    .refresh-badge {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .78rem;
+      color: var(--txt-300);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.3rem 0.8rem;
+      border-radius: 100px;
+    }
+
+    .refresh-countdown {
+      font-variant-numeric: tabular-nums;
+      color: var(--clr-primary);
+      font-weight: 700;
+      width: 14px;
+      text-align: center;
+      display: inline-block;
+    }
+
+    .refresh-bar-container {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.05);
+      position: absolute;
+      bottom: 0;
+      left: 0;
+    }
+
+    .refresh-bar-progress {
+      height: 100%;
+      background: var(--clr-primary);
+      width: 0%;
+      transition: width 1s linear;
+    }
+
+    @media (max-width: 700px) {
+      .display-content {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-serving {
+        min-height: 40vh;
+      }
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+  <div class="bg-mesh"></div>
+  <div id="toast-container"></div>
+
+  <div class="display-wrap">
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+      
+      </div>
+      <div class="brand" style="font-size:1.2rem;">
+        <div class="brand-icon" style="width:36px;height:36px;font-size:1rem;"></div>
+        <span>Medi<span class="hl">Queue</span> — Live Board</span>
+      </div>
+      <div class="top-bar-right">
+        
+        <div class="clock" id="clock">—</div>
+      </div>
+    </div>
+
+    <!-- Doctor Selector -->
+    <div class="doc-selector-row">
+      <label for="doc-select">Display for Doctor:</label>
+      <select id="doc-select" class="form-select">
+        <option value="">⏳ Loading doctors…</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="load-queue-btn">Show Live Queue</button>
+      <span class="pill" id="doc-label"
+        style="display:none;background:rgba(61,139,255,.15);color:#3d8bff;border:1px solid rgba(61,139,255,.3);"></span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="display-content">
+
+      <!-- Left: Now Serving -->
+      <div class="panel-serving" id="panel-serving">
+        <div class="serving-glow"></div>
+        <div class="ns-label">🟢 Now Serving</div>
+        <div class="ns-token" id="ns-token">—</div>
+        <div class="ns-name" id="ns-name"></div>
+        <div class="ns-empty" id="ns-empty">Select a doctor and load queue</div>
+      </div>
+
+      <!-- Right: Queue -->
+      <div class="panel-queue">
+        <h2>⏳ Waiting Queue</h2>
+        <div id="queue-list">
+          <div class="empty-state">
+            <div class="empty-icon"></div>
+            <div>Select a doctor to view queue</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ticker -->
+    <div class="ticker-bar">
+      <div class="ticker-inner" id="ticker-text">
+        Welcome to MediQueue &nbsp;&nbsp;•&nbsp;&nbsp; Please wait for your token number to be called
+        &nbsp;&nbsp;•&nbsp;&nbsp; Keep your token slip ready &nbsp;&nbsp;•&nbsp;&nbsp; Do not leave the waiting area
+        &nbsp;&nbsp;•&nbsp;&nbsp;
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js?v=3"></script>
+  <script>
+    let doctorId = null;
+    const REFRESH_INTERVAL = 15;
+    let countdownVal = REFRESH_INTERVAL;
+    let prevServingToken = null;
+    // Audio for when token changes
+    const chimeSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); /* Using a free chime sound */
+    chimeSound.volume = 0.5;
+
+    /* ── Load Doctors Dropdown ─────────────────────────────── */
+    async function loadDoctorsDropdown() {
+      const sel = document.getElementById('doc-select');
+      try {
+        const doctors = await api('/doctors');
+        if (!doctors.length) {
+          sel.innerHTML = '<option value="">No doctors available</option>';
+          return;
+        }
+        sel.innerHTML = '<option value="">— Select a Doctor —</option>' +
+          doctors.map(d => `<option value="${d.id}">Dr. ${d.name} — ${d.department}</option>`).join('');
+      } catch (_) {
+        sel.innerHTML = '<option value="">⚠️ Error loading doctors</option>';
+      }
+    }
+
+    /* ── Clock ────────────────────────────────────────────── */
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent =
+        now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* ── Countdown & Progress Bar ─────────────────────────── */
+    function startCountdown() {
+      countdownVal = REFRESH_INTERVAL;
+      updateProgressUI();
+
+      
+      window._cdInterval = setInterval(() => {
+        countdownVal--;
+        updateProgressUI();
+
+        if (countdownVal <= 0) {
+          refresh();
+          countdownVal = REFRESH_INTERVAL;
+        }
+      }, 1000);
+    }
+
+    function updateProgressUI() {
+      document.getElementById('countdown').textContent = countdownVal;
+      // Calculate progress (0 to 100%)
+      const pct = ((REFRESH_INTERVAL - countdownVal) / REFRESH_INTERVAL) * 100;
+      document.getElementById('refresh-progress').style.width = `${pct}%`;
+    }
+
+    /* ── Load Button ─────────────────────────────────────── */
+    document.getElementById('load-queue-btn').addEventListener('click', () => {
+      const sel = document.getElementById('doc-select');
+      const id = parseInt(sel.value);
+
+      if (!id) { showToast('Please select a doctor first.', 'warn'); return; }
+
+      doctorId = id;
+
+      // Play sound once on user interaction to enable audio context for later
+      chimeSound.play().catch(e => console.log('Audio autoplay prevented on first click.'));
+
+      const pill = document.getElementById('doc-label');
+      const text = sel.options[sel.selectedIndex].text;
+      pill.textContent = text;
+      pill.style.display = 'inline-flex';
+
+      // Hide the select to make board cleaner
+      sel.style.display = 'none';
+      document.querySelector('label[for="doc-select"]').style.display = 'none';
+      document.getElementById('load-queue-btn').textContent = 'Change Doctor';
+      document.getElementById('load-queue-btn').onclick = function () {
+        // Toggle back
+        sel.style.display = '';
+        document.querySelector('label[for="doc-select"]').style.display = '';
+        this.textContent = 'Apply';
+        this.onclick = null; // Reverts to original listener
+        setTimeout(() => location.reload(), 200); // Easiest way to reset state
+      };
+
+      refresh();
+      startCountdown();
+    });
+
+    /* ── Render Serving ──────────────────────────────────── */
+    function renderServing(data) {
+      const panel = document.getElementById('panel-serving');
+      const tokenEl = document.getElementById('ns-token');
+      const nameEl = document.getElementById('ns-name');
+      const emptyEl = document.getElementById('ns-empty');
+
+      if (!data || !data.token_number || data.message === 'No patient currently serving') {
+        tokenEl.textContent = '—';
+        nameEl.textContent = '';
+        emptyEl.textContent = 'No patient currently being served';
+        panel.classList.remove('has-patient');
+        prevServingToken = null;
+        return;
+      }
+
+      emptyEl.textContent = '';
+      panel.classList.add('has-patient');
+
+      const token = '#' + data.token_number;
+
+      if (token !== prevServingToken) {
+        // New token! Animation and Sound time
+        tokenEl.classList.remove('active');
+
+        // Play chime if not the first load (to avoid blasting sound on page load)
+        if (prevServingToken !== null) {
+          chimeSound.play().catch(e => console.log('Audio play prevented by browser policy'));
+        }
+
+        // Force DOM reflow to restart animation
+        void tokenEl.offsetWidth;
+
+        tokenEl.classList.add('active');
+        prevServingToken = token;
+      }
+
+      tokenEl.textContent = token;
+      nameEl.textContent = data.name || '';
+    }
+
+    /* ── Render Queue ─────────────────────────────────────── */
+    function renderQueue(queue) {
+      const list = document.getElementById('queue-list');
+      if (!queue || !queue.length) {
+        list.innerHTML = `<div class="empty-state" style="animation: fadeUp .5s ease"><div class="empty-icon">🎉</div><div>Queue is empty — all caught up!</div></div>`;
+
+        // Update ticker
+        document.getElementById('ticker-text').textContent =
+          '🏥 MediQueue   •   Queue is currently empty — all patients have been attended   •   Thank you for your patience   •   ';
+        return;
+      }
+
+      list.innerHTML = queue.map((p, i) => {
+        // Highlight the next person in line
+        const isNext = i === 0;
+        const rowClass = isNext ? 'queue-row next-up' : 'queue-row';
+        const waitLabel = isNext ? 'Next up' : fmtWait(p.estimated_waiting_time_minutes);
+
+        return `
+      <div class="${rowClass}" style="animation-delay:${i * 0.08}s">
+        <div class="qr-pos">${p.queue_position}</div>
+        <div class="qr-token">#${p.token_number}</div>
+        <div class="qr-name">${p.name}</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem;">
+          ${priorityBadge(p.priority)}
+          <div class="qr-wait">${waitLabel}</div>
+        </div>
+      </div>
+    `}).join('');
+
+      // Update ticker with actual upcoming tokens
+      const tickerNames = queue.slice(0, 5).map(p => `Token #${p.token_number} (${p.name})`).join('  •  ');
+      document.getElementById('ticker-text').innerHTML =
+        `🏥 UPCOMING TOKENS &nbsp;&nbsp;•&nbsp;&nbsp; ${tickerNames} &nbsp;&nbsp;•&nbsp;&nbsp; Please keep your token slip ready &nbsp;&nbsp;•&nbsp;&nbsp;`;
+    }
+
+    /* ── Refresh ──────────────────────────────────────────── */
+    async function refresh() {
+      if (!doctorId) return;
+      try {
+        const [queue, serving] = await Promise.all([
+          api(`/queue/${doctorId}`).catch(() => []),
+          api(`/currentServing/${doctorId}`).catch(() => null)
+        ]);
+        renderServing(serving);
+        renderQueue(queue);
+
+        // Reset progress visual
+        document.getElementById('refresh-progress').style.transition = 'none';
+        document.getElementById('refresh-progress').style.width = '0%';
+        void document.getElementById('refresh-progress').offsetWidth; // force reflow
+        document.getElementById('refresh-progress').style.transition = 'width 1s linear';
+
+      } catch (err) {
+        console.error("Display refresh error:", err);
+      }
+    }
+
+    // Load doctors on startup
+    loadDoctorsDropdown();
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+          console.log('SW registered!', reg.scope);
+        }).catch(err => {
+          console.log('SW registration failed: ', err);
+        });
+      });
+    }
+  </script>
+</body>
+
+</html>

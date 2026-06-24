@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediQueue — Pharmacy System</title>
+  <meta name="description" content="Hospital pharmacy prescription management.">
+  <link rel="stylesheet" href="style.css?v=3">
+  <style>
+    .pharmacy-wrap {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .search-card {
+      background: var(--clr-glass);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .search-input-group {
+      display: flex;
+      gap: 1rem;
+      max-width: 400px;
+      margin: 1.5rem auto 0;
+    }
+
+    .search-input-group .form-input {
+      flex: 1;
+      font-size: 1.2rem;
+      text-align: center;
+      padding: 0.8rem;
+    }
+
+    .prescription-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.3s ease;
+    }
+
+    .p-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.8rem;
+    }
+
+    .p-patient-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--clr-primary);
+    }
+
+    .med-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.5rem;
+    }
+
+    .med-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .med-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .med-inst {
+      font-size: 0.85rem;
+      color: var(--txt-300);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.3rem 0.6rem;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-dispensed {
+      background: rgba(0, 212, 170, 0.15);
+      color: #00d4aa;
+      border: 1px solid rgba(0, 212, 170, 0.3);
+    }
+
+    .status-pending {
+      background: rgba(255, 190, 50, 0.15);
+      color: #ffc83d;
+      border: 1px solid rgba(255, 190, 50, 0.3);
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+  <div class="bg-mesh"></div>
+  <div id="toast-container"></div>
+
+  <div class="pharmacy-wrap">
+    <div class="brand" style="justify-content:center; margin-bottom: 2rem;">
+      <span>Medi<span class="hl">Queue</span> Pharmacy</span>
+    </div>
+
+    <div class="search-card">
+      <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">Dispense Prescriptions</h2>
+      <p class="sub">Enter today's patient token number to retrieve digital prescriptions.</p>
+
+      <form id="search-form" class="search-input-group">
+        <input type="number" id="token-input" class="form-input" placeholder="Token #" required min="1">
+        <button type="submit" class="btn btn-primary" id="search-btn">Search</button>
+      </form>
+    </div>
+
+    <div id="results-container">
+      <div style="text-align:center; color:var(--txt-300); padding: 2rem;">Enter a token number above to search.</div>
+    </div>
+
+  </div>
+
+  <script src="script.js?v=3"></script>
+  <script>
+    document.getElementById('search-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const token = document.getElementById('token-input').value;
+      const btn = document.getElementById('search-btn');
+      const container = document.getElementById('results-container');
+
+      setLoading(btn, true);
+      try {
+        const res = await api(`/pharmacy/search/${token}`);
+
+        if (!res.data || res.data.length === 0) {
+          container.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div>No prescriptions found for token #${token} today.</div></div>`;
+          return;
+        }
+
+        container.innerHTML = res.data.map(visit => {
+          let presHTML = visit.prescriptions.map(p => {
+            let btnHtml = p.is_dispensed ?
+              `<span class="status-badge status-dispensed">Dispensed</span>` :
+              `<button class="btn btn-accent btn-sm" onclick="markDispensed(${p.id}, ${token})">Mark Dispensed</button>`;
+
+            return `
+          <div class="med-row fade-in">
+            <div class="med-details">
+              <span class="med-name">${p.medicine_name}</span>
+              ${(p.dosage || p.duration) ? `<span class="med-inst">${p.dosage ? p.dosage : ''} ${p.duration ? 'for ' + p.duration : ''}</span>` : ''}
+              ${p.notes ? `<span class="med-inst" style="font-style:italic">Note: ${p.notes}</span>` : ''}
+            </div>
+            <div>${btnHtml}</div>
+          </div>`;
+          }).join('');
+
+          return `
+        <div class="prescription-card">
+          <div class="p-header">
+            <div>
+              <div class="p-patient-name">${visit.patient_name}</div>
+              <div class="sub">Token #${token}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="color:var(--txt-200)">${visit.doctor_name}</div>
+              <div class="sub">Diagnosis: ${visit.diagnosis || 'None'}</div>
+            </div>
+          </div>
+          <div>${presHTML}</div>
+        </div>`;
+        }).join('');
+
+      } catch (err) {
+        if (err.message.includes('404')) {
+          container.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div>Visit not found for token #${token} today.</div></div>`;
+        } else {
+          showToast(err.message, 'error');
+        }
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+
+    async function markDispensed(prescriptionId, tokenNumber) {
+      try {
+        await api(`/pharmacy/dispense/${prescriptionId}`, 'POST');
+        showToast('Medicine marked as dispensed!', 'success');
+        // Re-trigger search to update UI
+        document.getElementById('token-input').value = tokenNumber;
+        document.getElementById('search-btn').click();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+          console.log('SW registered!', reg.scope);
+        }).catch(err => {
+          console.log('SW registration failed: ', err);
+        });
+      });
+    }
+  </script>
+</body>
+
+</html>

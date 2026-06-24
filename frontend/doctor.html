@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediQueue — Doctor Dashboard</title>
+  <meta name="description"
+    content="Doctor consultation and queue management dashboard for MediQueue Smart Hospital System.">
+  <link rel="stylesheet" href="style.css?v=3">
+  <style>
+    /* ── Layout ─────────────────────────────────────────────── */
+    .doc-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    .doc-sidebar {
+      background: var(--clr-glass);
+      border-right: 1px solid var(--clr-border);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .doc-sidebar-header {
+      padding: 1.4rem 1.2rem 1rem;
+      border-bottom: 1px solid var(--clr-border);
+    }
+
+    .doc-sidebar-nav {
+      flex: 1;
+      padding: 1rem .6rem;
+      display: flex;
+      flex-direction: column;
+      gap: .25rem;
+    }
+
+    .doc-nav-item {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .62rem .85rem;
+      border-radius: var(--radius-md);
+      font-size: .88rem;
+      cursor: pointer;
+      color: var(--txt-200);
+      transition: background .15s, color .15s;
+    }
+
+    .doc-nav-item:hover {
+      background: rgba(255, 255, 255, .06);
+      color: var(--txt-100);
+    }
+
+    .doc-nav-item.active {
+      background: rgba(61, 139, 255, .15);
+      color: var(--clr-primary);
+      font-weight: 600;
+    }
+
+    .doc-nav-icon {
+      font-size: 1.1rem;
+    }
+
+    .doc-sidebar-footer {
+      padding: 1rem 1.2rem;
+      border-top: 1px solid var(--clr-border);
+    }
+
+    .doc-doctor-card {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .75rem 1rem;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      margin-bottom: .75rem;
+    }
+
+    .doc-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .doc-info-name {
+      font-weight: 700;
+      font-size: .88rem;
+    }
+
+    .doc-info-dept {
+      font-size: .73rem;
+      color: var(--clr-primary);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    /* ── Main content ───────────────────────────────────────── */
+    .doc-main {
+      overflow-y: auto;
+    }
+
+    .doc-section {
+      display: none;
+      padding: 2rem 2.5rem;
+    }
+
+    .doc-section.active {
+      display: block;
+    }
+
+    /* ── Stats mini-strip ───────────────────────────────────── */
+    .doc-stats-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .mini-stat {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      background: var(--clr-glass);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      padding: .9rem 1.1rem;
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+    }
+
+    .mini-stat-icon {
+      font-size: 1.5rem;
+    }
+
+    .mini-stat-val {
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+
+    .mini-stat-lbl {
+      font-size: .73rem;
+      color: var(--txt-300);
+      margin-top: .05rem;
+    }
+
+    /* ── Now Serving card ───────────────────────────────────── */
+    .serving-card {
+      background: linear-gradient(135deg, rgba(61, 139, 255, .12), rgba(0, 212, 170, .08));
+      border: 1px solid rgba(61, 139, 255, .3);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .serving-card-title {
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--clr-primary);
+      margin-bottom: 1rem;
+    }
+
+    .serving-main {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .token-badge {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
+      display: grid;
+      place-items: center;
+      font-size: 1.5rem;
+      font-weight: 900;
+      flex-shrink: 0;
+      box-shadow: 0 0 24px rgba(61, 139, 255, .35);
+    }
+
+    .serving-detail-name {
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .serving-detail-sub {
+      font-size: .83rem;
+      color: var(--txt-300);
+      margin-top: .2rem;
+    }
+
+    .serving-actions {
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-top: 1.25rem;
+    }
+
+    /* ── Condition Toggle ────────────────────────────────────── */
+    .cond-toggle {
+      display: inline-flex;
+      background: rgba(255, 255, 255, .03);
+      border: 1px solid var(--clr-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .cond-lbl {
+      padding: 0.4rem 1rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--txt-300);
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .cond-lbl:hover {
+      background: rgba(255, 255, 255, .05);
+    }
+
+    input:checked+.lbl-stable {
+      background: rgba(61, 139, 255, .15);
+      color: var(--clr-primary);
+    }
+
+    input:checked+.lbl-crit {
+      background: rgba(255, 80, 80, .15);
+      color: #ff6b6b;
+    }
+
+    /* ── Admitted mini-panel (inside doctor queue tab) ────── */
+    .admitted-mini {
+      margin-top: 1.5rem;
+      background: rgba(0, 212, 170, .06);
+      border: 1px solid rgba(0, 212, 170, .2);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+    }
+
+    .admitted-mini-title {
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #00d4aa;
+      margin-bottom: .75rem;
+    }
+
+    /* ── Refresh pill ───────────────────────────────────────── */
+    .refresh-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      font-size: .78rem;
+      color: var(--txt-300);
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid var(--clr-border);
+      border-radius: 100px;
+      padding: .22rem .75rem;
+    }
+
+    .refresh-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #00d4aa;
+      animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .2
+      }
+    }
+
+    /* ── Queue table ────────────────────────────────────────── */
+    .queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .empty-serving {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      background: rgba(61, 139, 255, .04);
+      border: 1px dashed rgba(61, 139, 255, .2);
+      border-radius: var(--radius-md);
+      color: var(--txt-300);
+      font-size: .92rem;
+    }
+
+    /* ── No-doctor error card ───────────────────────────────── */
+    .no-doctor-card {
+      background: rgba(255, 86, 119, .08);
+      border: 1px solid rgba(255, 86, 119, .25);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    .no-doctor-card h3 {
+      font-size: 1.2rem;
+      margin-bottom: .65rem;
+    }
+
+    /* ── Messages panel ─────────────────────────────────────── */
+    .msg-thread {
+      background: rgba(0, 0, 0, .18);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      height: 320px;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .65rem;
+      margin-bottom: 1rem;
+    }
+
+    .msg-bubble {
+      max-width: 80%;
+      padding: .55rem .85rem;
+      border-radius: 10px;
+      font-size: .83rem;
+      line-height: 1.45;
+    }
+
+    .msg-bubble.sent {
+      align-self: flex-end;
+      background: rgba(61, 139, 255, .22);
+      border: 1px solid rgba(61, 139, 255, .3);
+    }
+
+    .msg-bubble.received {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid var(--clr-border);
+    }
+
+    .msg-meta {
+      font-size: .68rem;
+      color: var(--txt-300);
+      margin-top: .25rem;
+    }
+
+    .msg-compose {
+      display: flex;
+      gap: .65rem;
+    }
+
+    .msg-compose .form-input {
+      flex: 1;
+    }
+
+    /* ── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .doc-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .doc-sidebar {
+        display: none;
+      }
+
+      .doc-stats-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .doc-section {
+        padding: 1.25rem 1rem;
+      }
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+  <div class="bg-mesh"></div>
+  <div id="toast-container"></div>
+
+  <div class="doc-layout">
+
+    <!-- ─── Sidebar ─────────────────────────────────────────── -->
+    <aside class="doc-sidebar">
+      <div class="doc-sidebar-header">
+        <div class="brand" style="font-size:1.2rem;">
+          <div class="brand-icon" style="width:34px;height:34px;font-size:.95rem;"></div>
+          <span>Medi<span class="hl">Queue</span></span>
+        </div>
+      </div>
+
+      <nav class="doc-sidebar-nav">
+        <div class="doc-nav-item active" data-tab="queue" onclick="switchTab(this)">
+          Queue &amp; Serving
+        </div>
+        <div class="doc-nav-item" data-tab="messages" onclick="switchTab(this)">
+          Messages
+          <span class="badge badge-accent" id="msg-badge" style="margin-left:auto;display:none;">0</span>
+        </div>
+      </nav>
+
+      <div class="doc-sidebar-footer">
+        <div class="doc-doctor-card">
+          <div class="doc-avatar">🩺</div>
+          <div>
+            <div class="doc-info-name" id="doc-name">Doctor</div>
+            <div class="doc-info-dept" id="doc-dept">Loading…</div>
+            <div class="toggle-row" style="margin-top:0.75rem;">
+              <label class="toggle">
+                <input type="checkbox" id="avail-toggle" checked onchange="toggleAvailability(this)">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label" id="avail-text" style="font-size:0.8rem;">Available</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-full btn-sm" onclick="logout()">Logout</button>
+      </div>
+    </aside>
+
+    <!-- ─── Main ────────────────────────────────────────────── -->
+    <main class="doc-main">
+
+      <!-- ── QUEUE & SERVING TAB ──────────────────────────────── -->
+      <div class="doc-section active" id="tab-queue">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Doctor Dashboard</div>
+            <div class="page-sub" id="doc-sub">Loading your session…</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.75rem;">
+            
+            <button class="btn btn-primary btn-sm" id="next-btn">⏭ Call Next</button>
+          </div>
+        </div>
+
+        <!-- Mini stats strip -->
+        <div class="doc-stats-strip">
+          <div class="mini-stat">
+            <div>
+              <div class="mini-stat-val" id="stat-waiting">—</div>
+              <div class="mini-stat-lbl">Waiting</div>
+            </div>
+          </div>
+          <div class="mini-stat">
+            <div>
+              <div class="mini-stat-val" id="stat-serving">—</div>
+              <div class="mini-stat-lbl">Now Serving</div>
+            </div>
+          </div>
+          <div class="mini-stat">
+            <div>
+              <div class="mini-stat-val" id="stat-wait-time">—</div>
+              <div class="mini-stat-lbl">Est. Wait (1st)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Now Serving -->
+        <div class="serving-card">
+          <div class="serving-card-title"> Now Serving</div>
+          <div id="serving-area">
+            <div class="empty-serving">No patient currently being served.<br>Click <strong>Call Next</strong> to
+              begin consultation.</div>
+          </div>
+        </div>
+
+        <!-- Admitted Patients (Doctor side) -->
+        <div class="admitted-mini" id="admitted-mini" style="display:none;">
+          <div class="admitted-mini-title">Patients Admitted Under You</div>
+          <div id="admitted-mini-body">
+            <div class="empty-state">
+              <div>No patients currently admitted</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Queue table -->
+        <div style="margin-top:1.5rem;">
+          <div class="queue-header">
+            <h3>Patient Queue</h3>
+            <span class="pill" id="queue-count">0 waiting</span>
+          </div>
+          <div class="tbl-wrap" id="queue-table-wrap">
+            <table id="queue-table">
+              <thead>
+                <tr>
+                  <th>Token</th>
+                  <th>Patient Details</th>
+                  <th>Pos & Wait Time</th>
+                  <th>Priority Score</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="queue-body">
+                <tr>
+                  <td colspan="5">
+                    <div class="empty-state">
+                      <div>Fetching queue…</div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MESSAGES TAB ─────────────────────────────────────── -->
+      <div class="doc-section" id="tab-messages">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Messages</div>
+            <div class="page-sub">Send messages to admin / reception</div>
+          </div>
+          
+        </div>
+
+        <div class="card">
+          <div class="msg-thread" id="msg-thread">
+            <div style="text-align:center;color:var(--txt-300);font-size:.83rem;margin:auto;">Loading messages…</div>
+          </div>
+          <div class="msg-compose">
+            <input id="msg-input" type="text" class="form-input" placeholder="Type a message to admin / reception…"
+              maxlength="500" onkeydown="if(event.key==='Enter') sendMessage()">
+            <button class="btn btn-primary" id="msg-send-btn" onclick="sendMessage()">Send</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="script.js?v=3"></script>
+  <script>
+    requireRole('doctor');
+    const { userId } = getSession();
+    let doctorId = null;
+    let doctorName = 'Doctor';
+    let servingVisitId = null;
+    let refreshInterval = null;
+    let lastMsgId = 0;
+
+    // ─── Tab switching ─────────────────────────────────────────
+    function switchTab(el) {
+      document.querySelectorAll('.doc-nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.doc-section').forEach(s => s.classList.remove('active'));
+      el.classList.add('active');
+
+      const tabId = el.dataset.tab;
+      document.getElementById('tab-' + tabId).classList.add('active');
+
+      // Update URL hash without hard reload
+      if (history.replaceState) {
+        history.replaceState(null, null, '#' + tabId);
+      }
+
+      if (tabId === 'messages') {
+        loadMessages();
+        document.getElementById('msg-badge').style.display = 'none';
+      }
+    }
+
+    // ─── Doctor info — auto-resolve from user_id ───────────────
+    async function loadDoctorInfo() {
+      // 1. Try cached doctor id
+      const cached = localStorage.getItem('mq_doctor_id');
+      if (cached && !isNaN(parseInt(cached))) {
+        doctorId = parseInt(cached);
+      }
+
+      // 2. Always resolve from backend using user_id to get fresh name/dept
+      try {
+        const doc = await api(`/myDoctorId/${userId}`);
+        doctorId = doc.doctor_id;
+        doctorName = doc.name;
+        localStorage.setItem('mq_doctor_id', doctorId);
+        document.getElementById('doc-name').textContent = doc.name;
+        document.getElementById('doc-dept').textContent = doc.department;
+        document.getElementById('doc-sub').textContent = `Dr. ${doc.name} · ${doc.department}`;
+      } catch (err) {
+        // If the logged-in user has no linked doctor profile, show a friendly error
+        if (!doctorId) {
+          document.getElementById('tab-queue').innerHTML = `
+          <div class="no-doctor-card">
+            <div style="font-size:3rem;margin-bottom:.75rem;">⚠️</div>
+            <h3>No Doctor Profile Linked</h3>
+            <p class="sub" style="margin-bottom:1.25rem;">Your login account does not have a doctor profile yet.<br>
+            Ask the admin to add a doctor profile for your user account.</p>
+            <button class="btn btn-ghost btn-sm" onclick="logout()">🚪 Logout</button>
+          </div>`;
+          return;
+        }
+        // Have cached id — fetch details separately
+        try {
+          const doc = await api(`/doctor/${doctorId}`);
+          doctorName = doc.name;
+          document.getElementById('doc-name').textContent = doc.name;
+          document.getElementById('doc-dept').textContent = doc.department;
+          document.getElementById('doc-sub').textContent = `Dr. ${doc.name} · ${doc.department}`;
+          if (doc.is_available !== undefined) updateAvailabilityUI(doc.is_available);
+        } catch (_) {
+          document.getElementById('doc-name').textContent = `Doctor #${doctorId}`;
+          document.getElementById('doc-dept').textContent = 'Unknown dept';
+          document.getElementById('doc-sub').textContent = `Doctor ID: ${doctorId}`;
+        }
+      }
+    }
+
+    function updateAvailabilityUI(isAvail) {
+      const toggle = document.getElementById('avail-toggle');
+      const text = document.getElementById('avail-text');
+      toggle.checked = !isAvail; // toggle slider goes right when checked. Wait, the default CSS has right as 'active'.
+      // Actually typically toggle right = ON. Let's make right = available.
+      toggle.checked = isAvail;
+      text.textContent = isAvail ? '🟢 Available' : '🔴 Unavailable';
+    }
+
+    async function toggleAvailability(checkbox) {
+      if (!doctorId) return;
+      const isAvail = checkbox.checked;
+      checkbox.disabled = true;
+      try {
+        const res = await api(`/doctor/${doctorId}/toggle-availability`, 'POST', { is_available: isAvail });
+        updateAvailabilityUI(res.is_available);
+        showToast(res.is_available ? 'You are now marked correctly as Available.' : 'You are now marked as Unavailable. Patients will not be assigned to you.', 'info');
+      } catch (err) {
+        showToast(err.message, 'error');
+        checkbox.checked = !isAvail; // revert
+      } finally {
+        checkbox.disabled = false;
+      }
+    }
+
+    // ─── Fetch queue ───────────────────────────────────────────
+    async function fetchQueue() {
+      if (!doctorId) return;
+      try {
+        let queue = await api(`/queue/${doctorId}`);
+        // Fetch dynamic wait time for first person for accurate rendering
+        if (queue.length > 0) {
+          try {
+            const pred = await api(`/predict-wait-time/${queue[0].visit_id}`);
+            queue[0].dynamic_wait = pred.estimated_wait_time;
+          } catch (e) { }
+        }
+        renderQueue(queue);
+      } catch (_) { }
+    }
+
+    // ─── Fetch currently serving ───────────────────────────────
+    async function fetchServing() {
+      if (!doctorId) return;
+      try {
+        const data = await api(`/currentServing/${doctorId}`);
+        renderServing(data);
+      } catch (_) { }
+    }
+
+    // ─── Fetch admitted patients for this doctor ───────────────
+    async function fetchAdmitted() {
+      if (!doctorId) return;
+      try {
+        const all = await api('/admittedPatients');
+        // Filter by doctor — need to check via todayPatients or admittedPatients
+        // admittedPatients doesn't return doctor_id, so we use todayPatients crossref
+        const today = await api('/todayPatients');
+        const myAdmitted = all.filter(a =>
+          today.find(t => t.visit_id === a.visit_id && t.status === 'admitted')
+        );
+        renderAdmittedMini(myAdmitted);
+      } catch (_) { }
+    }
+
+    // ─── Render serving card ───────────────────────────────────
+    async function renderServing(data) {
+      const area = document.getElementById('serving-area');
+      const servingStat = document.getElementById('stat-serving');
+
+      if (!data || data.message === 'No patient currently serving' || !data.token_number) {
+        servingVisitId = null;
+        servingStat.textContent = '0';
+        area.innerHTML = `<div class="empty-serving">🩺 No patient currently being served.<br>Click <strong>Call Next</strong> to begin consultation.</div>`;
+        return;
+      }
+
+      if (servingVisitId === data.visit_id) {
+        return; // Do not re-render and wipe out active prescription typing
+      }
+
+      servingVisitId = data.visit_id;
+      servingStat.textContent = '1';
+
+      let detailsStr = '';
+      try {
+        const det = await api(`/patientDetails/${data.visit_id}`);
+        const phist = det.history.map(h => `<div style="font-size:0.8rem; margin-bottom:0.4rem; padding:0.4rem; background:rgba(255,255,255,0.05); border-radius:4px;">
+         <strong>${h.date}</strong> - ${h.doctor}<br>
+         <em>Symptoms:</em> ${h.problem}<br>
+         <em>Diagnosis:</em> ${h.diagnosis || 'None'}<br>
+         ${h.prescriptions.map(p => `💊 ${p.medicine_name} (${p.dosage})`).join('<br>')}<br>
+         ${h.reports.map(r => '📄 <a href="' + API_BASE + r.url + '" target="_blank" style="color:var(--clr-primary)">' + r.filename + '</a>').join(', ')}
+       </div>`).join('');
+
+        const rep = det.current_reports.map(r => '📄 <a href="' + API_BASE + r.url + '" target="_blank" style="color:var(--clr-primary)">' + r.filename + '</a>').join(', ');
+
+        detailsStr = `
+       <div style="margin-top:1.5rem; display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+         <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--clr-border);">
+           <div style="font-size:0.85rem; color:var(--clr-primary); margin-bottom:0.5rem; text-transform:uppercase; font-weight:700;">Patient History</div>
+           <div style="max-height: 200px; overflow-y:auto; margin-top:0.5rem; padding-right:0.5rem;">${phist || '<div class="sub">No past history</div>'}</div>
+           <div style="font-size:0.85rem; color:var(--clr-primary); margin-top:1.5rem; margin-bottom:0.5rem; text-transform:uppercase; font-weight:700;">Current Reports</div>
+           <div>${rep || '<div class="sub">No reports uploaded for this visit</div>'}</div>
+         </div>
+         <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--clr-border);">
+           <div style="font-size:0.85rem; color:var(--clr-primary); margin-bottom:1rem; text-transform:uppercase; font-weight:700;">Digital Prescription</div>
+           <input type="text" id="diag-input" class="form-input" placeholder="Diagnosis (e.g. Viral Fever)" style="margin-bottom:0.8rem;" title="Diagnosis">
+           <input type="text" id="med-name" class="form-input" placeholder="Medicine Name" style="margin-bottom:0.5rem;">
+           <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+             <input type="text" id="med-dosage" class="form-input" placeholder="Dosage (e.g. 1-0-1)">
+             <input type="text" id="med-duration" class="form-input" placeholder="Duration (5 days)">
+           </div>
+           <input type="text" id="med-notes" class="form-input" placeholder="Notes (optional)" style="margin-bottom:0.5rem;">
+         </div>
+       </div>`;
+      } catch (e) { }
+
+      area.innerHTML = `
+      <div class="serving-main fade-in">
+        <div class="token-badge">#${data.token_number}</div>
+        <div>
+           <div class="serving-detail-name">${data.name}</div>
+           <div class="serving-detail-sub">Visit ID: ${data.visit_id} · Token #${data.token_number}</div>
+        </div>
+      </div>
+      ${detailsStr}
+      <div class="serving-actions" style="margin-top:1.5rem;">
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+           <button class="btn btn-primary" onclick="savePrescription(${data.visit_id})" id="btn-save-presc">Save Prescription</button>
+           <button class="btn btn-ghost" onclick="pushBackPatient(${data.visit_id})" style="border: 1px dashed rgba(255,255,255,0.2);">Push Back to Queue</button>
+           <button class="btn btn-ghost" onclick="endConsultation(${data.visit_id})" style="border: 1px solid var(--clr-border);">End Consultation</button>
+        </div>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <div class="cond-toggle">
+              <input type="radio" id="cond-stable-${data.visit_id}" name="cond-${data.visit_id}" value="stable" checked style="display:none;">
+              <label for="cond-stable-${data.visit_id}" class="cond-lbl lbl-stable">Stable</label>
+              <input type="radio" id="cond-crit-${data.visit_id}" name="cond-${data.visit_id}" value="critical" style="display:none;">
+              <label for="cond-crit-${data.visit_id}" class="cond-lbl lbl-crit">Critical</label>
+          </div>
+          <button class="btn btn-accent" onclick="requestAdmission(${data.visit_id})">Request Admission</button>
+        </div>
+      </div>`;
+    }
+
+    // ─── Render queue table ────────────────────────────────────
+    function renderQueue(queue) {
+      const tbody = document.getElementById('queue-body');
+      const count = queue.length;
+      document.getElementById('queue-count').textContent = `${count} waiting`;
+      document.getElementById('stat-waiting').textContent = count;
+
+      document.getElementById('stat-wait-time').textContent =
+        count > 0 && queue[0].dynamic_wait !== undefined
+          ? (queue[0].dynamic_wait === 0 ? 'Next up' : `~${queue[0].dynamic_wait}m`)
+          : (count > 0 ? '—' : '—');
+
+      if (!count) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon"></div><div>Queue is empty — no patients waiting</div></div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = queue.map((p, index) => {
+        const isTop = index === 0;
+        const rowStyle = isTop ? 'background: rgba(61,139,255,.1); border-left: 3px solid var(--clr-primary);' : '';
+        const emergBadge = p.priority === 1 ? '<span class="badge badge-danger">🚨 Yes</span>' : '<span class="badge badge-muted">No</span>';
+
+        let estWait = '—';
+        if (isTop && p.dynamic_wait !== undefined) {
+          estWait = p.dynamic_wait === 0 ? 'Next' : `~${p.dynamic_wait}m`;
+        } else {
+          estWait = p.estimated_waiting_time_minutes === 0 ? 'Next' : `~${p.estimated_waiting_time_minutes}m`;
+        }
+
+        return `
+      <tr class="fade-in" style="${rowStyle}; animation-delay: ${Math.min(index * 0.03, 0.3)}s;">
+        <td><strong>#${p.token_number}</strong></td>
+        <td>
+           <div style="font-weight:600;">${p.name}</div>
+           <div style="font-size: .75rem; color: var(--txt-300);">Age: ${p.age || '--'} yrs | ${emergBadge}</div>
+        </td>
+        <td>
+           <div class="badge badge-muted">Pos: ${p.queue_position}</div>
+           <div style="font-size: .75rem; color: var(--txt-300); margin-top: 4px;">Wait: ${estWait}</div>
+        </td>
+        <td>
+           <strong style="font-size:1.1rem; color: ${isTop ? 'var(--clr-primary)' : 'inherit'}">${p.priority_score}</strong>
+        </td>
+        <td>
+           <button class="btn btn-ghost btn-sm" onclick="skipPatient(${p.visit_id})" style="padding:0.4rem 0.6rem;">Skip ⏭</button>
+           <button class="btn btn-ghost btn-sm" style="color:#ff6b6b; padding:0.4rem 0.6rem;" onclick="cancelDoctorPatient(${p.visit_id})">Cancel ❌</button>
+        </td>
+      </tr>`;
+      }).join('');
+    }
+
+    // ─── Render admitted mini panel ────────────────────────────
+    function renderAdmittedMini(patients) {
+      const wrapper = document.getElementById('admitted-mini');
+      const body = document.getElementById('admitted-mini-body');
+
+      if (!patients || !patients.length) {
+        wrapper.style.display = 'none';
+        return;
+      }
+
+      wrapper.style.display = 'block';
+      body.innerHTML = `
+      <table style="width:100%;">
+        <thead>
+          <tr>
+            <th>Bed #</th>
+            <th>Patient</th>
+            <th>Age</th>
+            <th>Problem</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${patients.map(p => `
+            <tr>
+              <td><strong>Bed #${p.bed_number}</strong></td>
+              <td>${p.name}</td>
+              <td>${p.age} yrs</td>
+              <td style="max-width:200px;white-space:normal;">${p.problem || '—'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+    }
+
+    // ─── Refresh (debounced, non-overlapping) ───────────────────
+    let _refreshing = false;
+
+    async function refresh() {
+      if (_refreshing) return;          // prevent overlapping refreshes
+      _refreshing = true;
+      try {
+        await Promise.all([fetchServing(), fetchQueue(), fetchAdmitted()]);
+        loadMessages(); // silent poll for badge
+      } finally {
+        _refreshing = false;
+      }
+    }
+
+    // Reset the auto-refresh timer so it never fires mid-action
+    function resetAutoRefresh() {
+      
+      window.addEventListener('mq-update', refresh);
+    }
+
+    // Delayed refresh — lets the toast be visible before DOM re-render
+    function delayedRefresh(ms = 800) {
+      return new Promise(resolve => {
+        setTimeout(async () => { await refresh(); resolve(); }, ms);
+      });
+    }
+
+    // ─── Actions ───────────────────────────────────────────────
+    document.getElementById('next-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('next-btn');
+      setLoading(btn, true);
+      try {
+        const res = await api(`/nextPatient/${doctorId}`, 'POST');
+        showToast(`Calling: ${res.name} (Token #${res.token_number})`, 'success');
+        resetAutoRefresh();
+        await delayedRefresh();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally { setLoading(btn, false); }
+    });
+
+    async function savePrescription(visitId) {
+      const diag = document.getElementById('diag-input')?.value.trim();
+      const medName = document.getElementById('med-name')?.value.trim();
+      const medDosage = document.getElementById('med-dosage')?.value.trim();
+      const medDuration = document.getElementById('med-duration')?.value.trim();
+      const medNotes = document.getElementById('med-notes')?.value.trim();
+      const btn = document.getElementById('btn-save-presc');
+
+      let prescriptions = [];
+      if (medName) {
+        prescriptions.push({ medicine_name: medName, dosage: medDosage || "", duration: medDuration || "", notes: medNotes || "" });
+      }
+
+      if (!diag && prescriptions.length === 0) {
+        showToast('Please enter a diagnosis or prescription first.', 'warn');
+        return;
+      }
+
+      setLoading(btn, true);
+      try {
+        await api(`/prescription/${visitId}`, 'POST', { diagnosis: diag || null, prescriptions: prescriptions });
+        showToast('Prescription saved successfully! 💊', 'success');
+
+        // clear inputs logically so they don't resubmit same medicine
+        if (document.getElementById('med-name')) document.getElementById('med-name').value = '';
+        if (document.getElementById('med-dosage')) document.getElementById('med-dosage').value = '';
+        if (document.getElementById('med-duration')) document.getElementById('med-duration').value = '';
+        if (document.getElementById('med-notes')) document.getElementById('med-notes').value = '';
+
+      } catch (err) {
+        showToast('Error saving prescription details: ' + err.message, 'error');
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    async function endConsultation(visitId) {
+      await completePatient(visitId);
+    }
+
+    async function completePatient(visitId) {
+      try {
+        await api(`/completePatient/${visitId}`, 'POST');
+        showToast('Consultation complete ✅', 'success');
+        resetAutoRefresh();
+        await delayedRefresh();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function pushBackPatient(visitId) {
+      const confirmed = await showConfirm("Are you sure you want to push this patient back into the queue? This rests their wait time to zero.", "👇");
+      if (!confirmed) return;
+      try {
+        await api(`/push-back/${visitId}`, 'POST');
+        showToast('Patient pushed back ⏭', 'success');
+        resetAutoRefresh();
+        await delayedRefresh();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function cancelDoctorPatient(visitId) {
+      if (!confirm("Are you sure you want to cancel this patient visit completely?")) return;
+      try {
+        await api(`/cancelPatient/${visitId}`, 'POST');
+        showToast('Patient appointment cancelled ❌', 'success');
+        resetAutoRefresh();
+        await delayedRefresh();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function requestAdmission(visitId) {
+      const conditionRadio = document.querySelector(`input[name="cond-${visitId}"]:checked`);
+      if (!conditionRadio) return;
+      const condition = conditionRadio.value;
+
+      try {
+        const res = await api(`/request-admission/${visitId}`, 'POST', { condition: condition });
+        showToast(`Admission requested. System suggests: ${res.suggested_bed} 🛏️`, 'success');
+        resetAutoRefresh();
+        await delayedRefresh();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    // ─── Messaging ─────────────────────────────────────────────
+    async function loadMessages() {
+      try {
+        const msgs = await api('/messages');
+        const thread = document.getElementById('msg-thread');
+        if (!msgs.length) {
+          thread.innerHTML = `<div style="text-align:center;color:var(--txt-300);font-size:.83rem;margin:auto;">No messages yet. Start the conversation!</div>`;
+          return;
+        }
+
+        const myId = parseInt(userId);
+        thread.innerHTML = msgs.map(m => {
+          const isMine = m.sender_id === myId && m.sender_role === 'doctor';
+          const cls = m.sender_role === 'admin' ? 'sent' : 'received';
+          let who = '';
+          if (isMine) {
+            who = 'You';
+          } else if (m.sender_role === 'admin') {
+            who = 'Admin / Reception';
+          } else {
+            who = `🩺 ${m.sender_name || 'Doctor (ID: ' + m.sender_id + ')'}`;
+          }
+          return `
+          <div class="msg-bubble ${cls}">
+            <div>${escapeHtml(m.message)}</div>
+            <div class="msg-meta">${who} · ${relativeTime(m.timestamp)}</div>
+          </div>`;
+        }).join('');
+
+        const newMax = Math.max(...msgs.map(m => m.id));
+        if (newMax > lastMsgId) {
+          const msgTabActive = document.getElementById('tab-messages').classList.contains('active');
+          if (!msgTabActive && lastMsgId > 0) {
+            const badge = document.getElementById('msg-badge');
+            badge.textContent = msgs.filter(m => m.id > lastMsgId).length;
+            badge.style.display = '';
+          }
+          lastMsgId = newMax;
+        }
+
+        thread.scrollTop = thread.scrollHeight;
+      } catch (_) { }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('msg-input');
+      const btn = document.getElementById('msg-send-btn');
+      const text = input.value.trim();
+      if (!text) return;
+
+      setLoading(btn, true);
+      try {
+        await api('/sendMessage', 'POST', {
+          sender_role: 'doctor',
+          sender_id: parseInt(userId),
+          message: text,
+        });
+        input.value = '';
+        await loadMessages();
+      } catch (err) {
+        showToast('Failed to send message: ' + err.message, 'error');
+      } finally { setLoading(btn, false); }
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ─── Init ──────────────────────────────────────────────────
+    async function init() {
+      await loadDoctorInfo();
+      if (!doctorId) return;
+      await refresh();
+      window.addEventListener('mq-update', refresh);
+    }
+
+    // Parse URL Hash on Load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.location.hash) {
+        const targetTab = window.location.hash.substring(1);
+        const targetNavEl = document.querySelector(`.doc-nav-item[data-tab="${targetTab}"]`);
+        if (targetNavEl) {
+          switchTab(targetNavEl);
+        }
+      }
+    });
+
+    init();
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+          console.log('SW registered!', reg.scope);
+        }).catch(err => {
+          console.log('SW registration failed: ', err);
+        });
+      });
+    }
+  </script>
+</body>
+
+</html>

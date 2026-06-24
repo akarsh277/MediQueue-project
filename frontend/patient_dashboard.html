@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediQueue — Patient Dashboard</title>
+  <link rel="stylesheet" href="style.css?v=3">
+  <style>
+    /* Vibrant Glassmorphism Overhaul */
+    body {
+      background: linear-gradient(135deg, #0f111a 0%, #171a23 100%);
+    }
+
+    .bg-mesh {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      background: radial-gradient(circle at 15% 50%, rgba(0, 212, 170, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 30%, rgba(61, 139, 255, 0.08) 0%, transparent 40%);
+      pointer-events: none;
+    }
+
+    .dashboard-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 1rem 2rem;
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.5rem;
+    }
+
+    .nav-tab {
+      cursor: pointer;
+      padding: 0.75rem 1.5rem;
+      color: var(--txt-300);
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .nav-tab::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--clr-primary);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: -1;
+    }
+
+    .nav-tab:hover {
+      color: #fff;
+    }
+
+    .nav-tab.active {
+      background: transparent;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 212, 170, 0.5);
+      border-bottom: 2px solid var(--clr-primary);
+    }
+
+    .nav-tab.active::before {
+      opacity: 0.15;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .panel {
+      background: rgba(20, 23, 33, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+    }
+
+    /* Active Queue Highlight Card */
+    .active-card {
+      background: linear-gradient(145deg, rgba(0, 212, 170, 0.05), rgba(0, 0, 0, 0));
+      border: 1px solid rgba(0, 212, 170, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 212, 170, 0.1);
+      border-radius: var(--radius-lg);
+      padding: 3rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .active-card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent 0%, rgba(0, 212, 170, 0.1) 20%, transparent 40%);
+      animation: rotate 10s linear infinite;
+      z-index: -1;
+    }
+
+    @keyframes rotate {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .history-card {
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-bottom: 1.2rem;
+      background: rgba(255, 255, 255, 0.02);
+      transition: transform 0.2s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .history-card:hover {
+      transform: translateY(-3px);
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .history-card header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--txt-100);
+      margin-bottom: 1rem;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+      padding-bottom: 0.8rem;
+    }
+
+    .report-upload {
+      margin-top: 1.2rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 1rem;
+    }
+
+    .prescription-block {
+      background: rgba(0, 212, 170, 0.05);
+      border: 1px solid rgba(0, 212, 170, 0.1);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.2rem;
+      margin-top: 1rem;
+    }
+
+    .prescription-block strong {
+      color: var(--clr-primary);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .dl-btn {
+      background: rgba(61, 139, 255, 0.15);
+      color: #3d8bff;
+      padding: 0.3rem 0.8rem;
+      border-radius: 100px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: 1px solid rgba(61, 139, 255, 0.3);
+      transition: all 0.2s;
+    }
+
+    .dl-btn:hover {
+      background: #3d8bff;
+      color: #fff;
+    }
+
+    .live-status-box {
+      display: inline-block;
+      padding: 0.5rem 1.5rem;
+      border-radius: 100px;
+      background: rgba(0, 212, 170, 0.1);
+      border: 1px solid rgba(0, 212, 170, 0.3);
+    }
+
+    .live-status {
+      text-align: center;
+      font-size: 2.5rem;
+      color: var(--clr-primary);
+      font-weight: 800;
+      margin: 0;
+      text-shadow: 0 0 20px rgba(0, 212, 170, 0.4);
+      letter-spacing: 2px;
+    }
+
+    /* Stats grid internal */
+    .stat-cluster {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      margin: 2.5rem 0;
+    }
+
+    .stat-cluster>div {
+      text-align: center;
+    }
+
+    .stat-cluster .sub {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.5rem;
+      opacity: 0.8;
+    }
+
+    .stat-cluster .val {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* File inputs styled as buttons */
+    .file-btn-primary {
+      cursor: pointer;
+      display: inline-block;
+      padding: 0.8rem 1.5rem;
+      background: var(--clr-primary);
+      color: #fff;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.2s;
+      border: none;
+      box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
+    }
+
+    .file-btn-primary:hover {
+      background: var(--clr-primary-hover);
+      transform: translateY(-1px);
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+  <div class="bg-mesh"></div>
+  <div id="toast-container"></div>
+
+  <div class="dashboard-container">
+    <div class="header">
+      <div class="brand">
+        <span>Medi<span class="hl">Queue</span></span>
+      </div>
+      <div style="display:flex; gap:1rem; align-items:center;">
+        <span id="patient-name-header" style="font-weight: 600; color: var(--txt-100);">Loading...</span>
+        <button class="btn btn-ghost btn-sm" onclick="logout()"
+          style="border: 1px solid rgba(255,255,255,0.1); border-radius:100px; padding: 0.4rem 1rem;">Logout</button>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="switchTab('booking')">Active Booking</div>
+      <div class="nav-tab" onclick="switchTab('history')">Medical History</div>
+    </div>
+
+    <!-- Booking Tab -->
+    <div id="tab-booking" class="tab-content active">
+
+      <!-- Active Token / Queue Card -->
+      <div id="active-visit-panel" class="panel active-card" style="display: none; text-align:center;">
+        <h2 style="margin-bottom: 1rem; color: #fff;" id="queue-title-text">Current Queue Status</h2>
+        <p class="sub" style="margin-bottom: 1rem;">Your token number is</p>
+
+        <div class="live-status-box">
+          <div class="live-status" id="live-token">—</div>
+        </div>
+
+        <div class="stat-cluster">
+          <div>
+            <div class="sub">Queue Position</div>
+            <div class="val" id="live-pos">—</div>
+          </div>
+          <div>
+            <div class="sub">Est. Wait</div>
+            <div class="val" id="live-wait">—</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap;">
+          <label for="report-upload-active" class="file-btn-primary" id="upload-btn-wrapper">Upload Report</label>
+          <input type="file" id="report-upload-active" accept=".pdf,.doc,.docx" style="display:none;"
+            onchange="uploadReport(this)">
+          <div id="cancel-btn-wrapper">
+          </div>
+        </div>
+
+        <div id="active-reports-container" style="margin-top: 1.5rem; display: none;">
+          <div style="font-size:0.9rem; color:var(--txt-200); margin-bottom: 0.5rem; text-transform: uppercase;">
+            Uploaded Reports</div>
+          <div id="active-reports-list" style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking Form -->
+      <div id="new-booking-panel" class="panel" style="max-width: 600px; margin: 0 auto;">
+        <div style="text-align:center; margin-bottom: 2rem;">
+          <h2 style="color: #fff; font-size: 1.8rem;">Book Consultation</h2>
+          <p class="sub" style="margin-top:0.5rem;">Join the queue safely from anywhere and get live wait predictions.
+          </p>
+        </div>
+
+        <form id="book-form" class="form-stack">
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">Select Doctor</label>
+            <select id="doc-id" class="form-select" style="padding: 1rem; font-size: 1.05rem;" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 600;">Symptoms / Problem</label>
+            <textarea id="symptoms" class="form-textarea" placeholder="Describe your symptoms briefly"
+              style="min-height: 120px; padding: 1rem; font-size: 1.05rem;" required></textarea>
+          </div>
+          <div class="form-group"
+            style="background: rgba(255,86,119,0.05); border: 1px solid rgba(255,86,119,0.2); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1rem; margin-top: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer;">
+              <input type="checkbox" id="is-emergency" style="width: 1.2rem; height: 1.2rem; accent-color: #ff5677;">
+              <span style="font-weight: 600; color: #ff5677;">Mark as Critical / Emergency Request</span>
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="book-btn"
+            style="padding: 1rem; font-size: 1.1rem; box-shadow: 0 8px 24px rgba(0,212,170,0.3);">Book Consultation
+            &rarr;</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- History Tab -->
+    <div id="tab-history" class="tab-content">
+      <div class="panel" style="background: transparent; box-shadow: none; border: none; padding: 0;">
+        <h2
+          style="margin-bottom: 1.5rem; color: #fff; padding-left: 0.5rem; border-left: 4px solid var(--clr-primary);">
+          Past Consultations</h2>
+        <div id="history-list">Loading history...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="script.js?v=3"></script>
+  <script>
+    let currentUser = null;
+    let currentActiveVisit = null;
+    let liveTimer = null;
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelector(`.nav-tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+    }
+
+    function logout() {
+      clearSession();
+      window.location.href = 'login.html';
+    }
+
+    async function loadProfile() {
+      const { userId, role } = getSession();
+      if (!userId || role !== 'patient') {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      try {
+        currentUser = await api(`/me/${userId}`);
+        document.getElementById('patient-name-header').textContent = `Hi, ${currentUser.name}`;
+
+        const docs = await api('/doctors');
+        const sel = document.getElementById('doc-id');
+        sel.innerHTML = '<option value="">— Choose a Doctor —</option>' + docs.map(d => `<option value="${d.id}">Dr. ${d.name} (${d.department})</option>`).join('');
+
+        await loadHistoryAndActive();
+      } catch (err) {
+        showToast('Error loading profile', 'error');
+      }
+    }
+
+    async function loadHistoryAndActive() {
+      try {
+        const res = await api(`/patient-history/${currentUser.phone}`);
+        const historyEl = document.getElementById('history-list');
+
+        let pastVisits = [];
+        let activeVisit = null;
+
+        res.history.forEach(v => {
+          let hasPendingPharmacy = v.prescriptions && v.prescriptions.some(p => p.is_dispensed === false || p.is_dispensed === 0);
+          let isActiveStatus = v.status === 'waiting' || v.status === 'serving';
+          let isPharmacyPending = v.status === 'completed' && hasPendingPharmacy;
+
+          if (isActiveStatus || isPharmacyPending) {
+            activeVisit = v;
+          } else {
+            pastVisits.push(v);
+          }
+        });
+
+        if (activeVisit) {
+          currentActiveVisit = activeVisit.visit_id;
+          document.getElementById('new-booking-panel').style.display = 'none';
+          document.getElementById('active-visit-panel').style.display = 'block';
+          startLiveWait(activeVisit.visit_id, currentUser.phone);
+        } else {
+          
+          currentActiveVisit = null;
+          document.getElementById('new-booking-panel').style.display = 'block';
+          document.getElementById('active-visit-panel').style.display = 'none';
+        }
+
+        if (pastVisits.length === 0) {
+          historyEl.innerHTML = '<div class="panel" style="text-align:center;"><p class="sub">No past consultations found.</p></div>';
+        } else {
+          historyEl.innerHTML = pastVisits.map(v => {
+            let medsHtml = v.prescriptions && v.prescriptions.length ?
+              v.prescriptions.map(p => {
+                let detail = [p.dosage, p.duration ? `for ${p.duration}` : ''].filter(Boolean).join(' · ');
+                let noteStr = p.notes ? `<span style="font-style:italic; color:var(--txt-300); font-size:0.82rem;"> — ${p.notes}</span>` : '';
+                let dispensedBadge = p.is_dispensed ? `<span style="margin-left:0.5rem; background:rgba(0,212,170,0.15); color:var(--clr-primary); padding:0.1rem 0.5rem; border-radius:100px; font-size:0.75rem; font-weight:600;">✅ Dispensed</span>` : '';
+                return `<div style="margin-top:0.4rem; display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">💊 <strong>${p.medicine_name}</strong>${detail ? ` <span style="color:var(--txt-300);font-size:0.88rem;">(${detail})</span>` : ''}${noteStr}${dispensedBadge}</div>`;
+              }).join('') : '';
+
+            let presBlock = medsHtml ? `<div class="prescription-block"><strong>🩺 Prescribed Medications</strong>${medsHtml}</div>` : '';
+
+            let diagHTML = v.diagnosis ? `<div style="margin-top:1rem;"><strong>Diagnosis:</strong> <span style="color:var(--clr-primary);">${v.diagnosis}</span></div>` : '';
+
+            let repHTML = v.reports && v.reports.length ?
+              `<div style="margin-top:1rem; display:flex; gap:0.5rem; align-items:center;"><strong>Reports:</strong> ` + v.reports.map(r => '<a href="' + API_BASE + r.url + '" target="_blank" class="dl-btn">📄 ' + r.filename + '</a>').join(' ') + `</div>` : '';
+
+            return `
+            <div class="history-card fade-in">
+              <header>
+                <span>${v.date}</span>
+                <span style="color:var(--clr-accent)">${v.doctor}</span>
+              </header>
+              <div style="font-size: 1.05rem;"><strong>Symptoms:</strong> ${v.problem}</div>
+              ${diagHTML}
+              ${presBlock}
+              ${repHTML}
+              <div class="report-upload">
+                <label for="file-${v.visit_id}" class="btn btn-ghost" style="padding:0.3rem 0.8rem; font-size:0.85rem; border: 1px dashed rgba(255,255,255,0.2);">Upload Additional Report</label>
+                <input type="file" id="file-${v.visit_id}" accept=".pdf,.doc,.docx" style="display:none;" onchange="uploadReport(this, ${v.visit_id})">
+              </div>
+            </div>
+          `;
+          }).join('');
+        }
+
+      } catch (e) {
+        document.getElementById('history-list').innerHTML = '<p class="sub margin">Could not load history.</p>';
+      }
+    }
+
+    document.getElementById('book-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const docId = document.getElementById('doc-id').value;
+      const problem = document.getElementById('symptoms').value;
+      const isEmergency = document.getElementById('is-emergency').checked;
+      const btn = document.getElementById('book-btn');
+
+      setLoading(btn, true);
+      try {
+        await api(`/book-home/${currentUser.id}`, 'POST', { doctor_id: parseInt(docId), problem: problem, is_emergency: isEmergency });
+        showToast('Appointment booked successfully! 🎉', 'success');
+        e.target.reset();
+        await loadHistoryAndActive();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+      setLoading(btn, false);
+    });
+
+    // Cancel is handled by Admin from Today Patients panel
+
+    async function uploadReport(inputElem, visitId = null) {
+      const file = inputElem.files[0];
+      if (!file) return;
+
+      let targetVisit = visitId || currentActiveVisit;
+      if (!targetVisit) return;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const token = localStorage.getItem('mq_token') || "";
+      try {
+        const res = await fetch(`${API_BASE}/uploads/${targetVisit}`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` },
+          body: formData
+        });
+        if (!res.ok) throw new Error(await res.text());
+        showToast(`Uploaded ${file.name} successfully`, 'success');
+        await loadHistoryAndActive();
+      } catch (err) {
+        showToast('File upload failed', 'error');
+      }
+    }
+
+    function startLiveWait(visitId, phone) {
+      
+
+      const updateStats = async () => {
+        try {
+          const histRes = await api(`/patient-history/${phone}`);
+          const v = histRes.history.find(h => h.visit_id === visitId);
+          if (!v) return;
+
+          const hasPendingPharmacy = v.prescriptions && v.prescriptions.some(p => p.is_dispensed === false || p.is_dispensed === 0);
+          const tokenDisplay = v.token_number ? `#${v.token_number}` : 'Loading...';
+
+          if (v.status === 'completed' && hasPendingPharmacy) {
+            document.getElementById('live-token').textContent = tokenDisplay;
+            document.getElementById('live-pos').textContent = '💊';
+            document.getElementById('live-wait').textContent = 'Visit Pharmacy';
+            document.getElementById('queue-title-text').textContent = 'Pending Prescription Pickup';
+            document.getElementById('cancel-btn-wrapper').style.display = 'none';
+            document.getElementById('upload-btn-wrapper').style.display = 'none';
+          } else {
+            document.getElementById('queue-title-text').textContent = 'Current Queue Status';
+            document.getElementById('cancel-btn-wrapper').style.display = 'block';
+            document.getElementById('upload-btn-wrapper').style.display = 'inline-block';
+
+            if (v.status === 'serving') {
+              document.getElementById('live-token').textContent = tokenDisplay;
+              document.getElementById('live-pos').textContent = '✅';
+              document.getElementById('live-wait').textContent = 'Now Serving!';
+              document.getElementById('cancel-btn-wrapper').style.display = 'none'; // hide cancel button while serving
+            } else {
+              const queueRes = await api(`/predict-wait-time/${visitId}`).catch(() => null);
+              if (queueRes) {
+                document.getElementById('live-token').textContent = tokenDisplay;
+                document.getElementById('live-pos').textContent = queueRes.queue_position || '—';
+                document.getElementById('live-wait').textContent = queueRes.estimated_wait_time !== undefined ? `${queueRes.estimated_wait_time}m` : '—';
+              }
+            }
+          }
+
+          // populate active reports
+          const repBox = document.getElementById('active-reports-container');
+          const repList = document.getElementById('active-reports-list');
+          if (v.reports && v.reports.length > 0) {
+            repBox.style.display = 'block';
+            repList.innerHTML = v.reports.map(r => '<a href="' + API_BASE + r.url + '" target="_blank" class="dl-btn">📄 ' + r.filename + '</a>').join('');
+          } else {
+            repBox.style.display = 'none';
+          }
+
+          // Auto-refresh logic: if pharmacy is cleared, reload fully to clear token
+          if (v.status === 'completed' && !hasPendingPharmacy) {
+            
+            await loadHistoryAndActive();
+          }
+
+        } catch (e) { }
+      };
+
+      updateStats();
+      window.addEventListener('mq-update', updateStats);
+    }
+
+    loadProfile();
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+          console.log('SW registered!', reg.scope);
+        }).catch(err => {
+          console.log('SW registration failed: ', err);
+        });
+      });
+    }
+  </script>
+</body>
+
+</html>
