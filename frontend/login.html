@@ -261,9 +261,11 @@
         btn.innerHTML = 'Welcome!';
 
         setTimeout(() => {
-          if (res.role === 'admin') location.href = 'admin.html';
-          else if (res.role === 'doctor') location.href = 'doctor.html';
-          else if (res.role === 'patient') location.href = 'patient_dashboard.html';
+          const role = (res.role || '').toLowerCase().trim();
+          if (role === 'admin') location.href = 'admin.html';
+          else if (role === 'doctor') location.href = 'doctor.html';
+          else if (role === 'patient') location.href = 'patient_dashboard.html';
+          else location.href = 'patient_dashboard.html'; // Fallback
         }, 700);
 
       } catch (err) {
