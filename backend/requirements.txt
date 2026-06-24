@@ -8,4 +8,4 @@ bcrypt
 websockets
 slowapi
 python-multipart
-boto3
+boto3 
