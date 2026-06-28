@@ -45,21 +45,35 @@ Built on a robust Python FastAPI backend and a lightweight, zero-build vanilla w
 
 Follow these steps to run MediQueue locally:
 
-### 1. Start the Backend Service
+### 1. Clone the Repository
 ```bash
-# Clone the repository and navigate to backend
+git clone https://github.com/akarsh277/Mediqueue-project.git
+cd Mediqueue-project
+```
+
+### 2. Set Up the Backend
+We recommend using a virtual environment for Python dependencies to avoid conflicts.
+```bash
+# Navigate to the backend directory
 cd backend
 
-# Install dependencies (ensure you have a virtual environment)
-pip install -r requirements.txt
+# Create and activate a virtual environment (optional but recommended)
+python -m venv venv
+# On Windows: venv\Scripts\activate
+# On Mac/Linux: source venv/bin/activate
 
-# Run the backend server
+# Install required dependencies
+pip install -r requirements.txt
+```
+
+### 3. Run the Backend Service
+```bash
 uvicorn main:app --reload --port 8000
 ```
 > The API will run on `http://127.0.0.1:8000`. 
 > Swagger Interactive Docs are available at `http://127.0.0.1:8000/docs`.
 
-### 2. Start the Frontend
+### 4. Start the Frontend
 Open a new terminal session and navigate to the frontend folder:
 ```bash
 cd frontend
@@ -75,6 +89,3 @@ python -m http.server 3000
 
 ## 📚 Documentation
 For an in-depth understanding of the algorithms, database schema, and detailed API documentation, please refer to the [MediQueue Documentation](MediQueue_Documentation.md).
-
-## 📄 License
-This project is licensed under the MIT License.
