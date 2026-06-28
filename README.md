@@ -1,6 +1,6 @@
 <div align="center">
   
-# 🏥 MediQueue
+# MediQueue
 
 **Intelligent Smart Hospital Management & Priority-Based Queue System**
 
@@ -8,8 +8,6 @@
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
-
-[Features](#-key-features) • [Architecture](#-architecture) • [Installation](#-installation) • [API Reference](#-api-endpoints)
 
 </div>
 
