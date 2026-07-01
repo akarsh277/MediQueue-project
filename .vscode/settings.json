@@ -11,5 +11,6 @@
             ]
         }
     },
-    "terminal.integrated.defaultProfile.windows": "PowerShell with venv"
+    "terminal.integrated.defaultProfile.windows": "PowerShell with venv",
+    "liveServer.settings.port": 5501
 }
