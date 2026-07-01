@@ -116,7 +116,7 @@ def _startup_db_seed():
         db.commit()
 
         # 7. Auto-complete stale "serving" patients from previous days
-        today = datetime.utcnow().date().isoformat()
+        today = datetime.now().strftime("%Y-%m-%d")
         stale = db.execute(_t(
             "UPDATE patient_visits SET status='completed', "
             "completion_time=:now "

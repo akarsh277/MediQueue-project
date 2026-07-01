@@ -35,7 +35,7 @@ def add_patient(data: schemas.AddPatientRequest, background_tasks: BackgroundTas
             status_code=400, detail="The selected doctor is currently unavailable."
         )
 
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().strftime("%Y-%m-%d")
     token = db.query(models.PatientVisit).filter(
         models.PatientVisit.visit_date == today,
         models.PatientVisit.doctor_id == data.doctor_id
@@ -143,7 +143,7 @@ def check_phone(request: Request, phone: Annotated[str, Path(pattern=r"^[0-9]{10
         
     past_visit_count = db.query(models.PatientVisit).filter(
         models.PatientVisit.user_id == user.id,
-        models.PatientVisit.visit_date != datetime.utcnow().date().isoformat()
+        models.PatientVisit.visit_date != datetime.now().strftime("%Y-%m-%d")
     ).count()
     
     return {
@@ -199,7 +199,7 @@ def book_home(user_id: int, data: schemas.HomeBookingRequest, background_tasks: 
     if not doc or not doc.is_available:
         raise HTTPException(status_code=400, detail="The selected doctor is currently unavailable.")
 
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().strftime("%Y-%m-%d")
     
     daily_count = db.query(models.PatientVisit).filter(
         models.PatientVisit.visit_date == today,
@@ -336,7 +336,7 @@ def predict_wait_time(patient_id: int, db: Session = Depends(get_db)):
          }
 
     doctor_id = patient.doctor_id
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().strftime("%Y-%m-%d")
 
     # 2. Reconstruct priority queue to determine position
     waiting_patients = db.query(models.PatientVisit).filter(

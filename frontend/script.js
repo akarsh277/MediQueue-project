@@ -26,7 +26,9 @@ async function api(path, method = 'GET', body = null) {
             // Stop execution by throwing a silent error to prevent cascades
             throw new Error('Unauthorized');
         }
-        throw new Error(data.detail || `Error ${res.status}`);
+        const error = new Error(data.detail || `Error ${res.status}`);
+        error.status = res.status;
+        throw error;
     }
     
     return data;
@@ -189,30 +191,35 @@ function relativeTime(ts) {
         style.textContent = `
             #mq-confirm-overlay {
                 position: fixed; inset: 0; z-index: 9999;
-                background: rgba(0,0,0,.65);
-                backdrop-filter: blur(6px);
+                background: rgba(4, 8, 15, 0.75);
+                backdrop-filter: blur(8px);
                 display: flex; align-items: center; justify-content: center;
                 opacity: 0; pointer-events: none;
                 transition: opacity .2s ease;
             }
             #mq-confirm-overlay.visible { opacity: 1; pointer-events: all; }
             #mq-confirm-box {
-                background: var(--clr-surface, #1a1f2e);
-                border: 1px solid var(--clr-border, rgba(255,255,255,.1));
-                border-radius: 16px;
-                padding: 2rem 2rem 1.5rem;
-                max-width: 380px; width: 90%;
-                box-shadow: 0 24px 64px rgba(0,0,0,.5);
+                background: var(--clr-glass, rgba(13, 24, 41, 0.9));
+                border: 1px solid var(--clr-border, rgba(255,255,255,.07));
+                border-radius: 20px;
+                padding: 2rem;
+                max-width: 400px; width: 90%;
+                box-shadow: 0 24px 64px rgba(0,0,0,.6), 0 0 20px rgba(0, 198, 167, 0.05);
                 transform: translateY(12px);
                 transition: transform .25s ease;
             }
             #mq-confirm-overlay.visible #mq-confirm-box { transform: translateY(0); }
-            #mq-confirm-msg {
-                font-size: .98rem; line-height: 1.55;
-                color: var(--txt-100, #f0f2f5);
-                margin-bottom: 1.5rem;
+            #mq-confirm-title {
+                font-weight: 800; font-size: 1.25rem;
+                color: var(--txt-100, #e8f0ff);
+                margin-bottom: 0.75rem;
+                letter-spacing: -0.01em;
             }
-            #mq-confirm-msg .confirm-icon { font-size: 2rem; display: block; margin-bottom: .65rem; }
+            #mq-confirm-msg {
+                font-size: .95rem; line-height: 1.55;
+                color: var(--txt-200, #a8b8d0);
+                margin-bottom: 2rem;
+            }
             #mq-confirm-actions { display: flex; gap: .75rem; justify-content: flex-end; }
         `;
         document.head.appendChild(style);
@@ -221,9 +228,10 @@ function relativeTime(ts) {
         overlay.id = 'mq-confirm-overlay';
         overlay.innerHTML = `
             <div id="mq-confirm-box">
+                <div id="mq-confirm-title">Confirm Action</div>
                 <div id="mq-confirm-msg"></div>
                 <div id="mq-confirm-actions">
-                    <button id="mq-confirm-cancel" class="btn btn-ghost btn-sm">Cancel</button>
+                    <button id="mq-confirm-cancel" class="btn btn-ghost btn-sm" style="border: 1px solid rgba(255,255,255,0.08);">Cancel</button>
                     <button id="mq-confirm-ok" class="btn btn-sm" style="background:rgba(255,80,80,.18);border:1px solid rgba(255,80,80,.4);color:#ff7b7b;">Confirm</button>
                 </div>
             </div>`;
@@ -231,15 +239,17 @@ function relativeTime(ts) {
     }
 })();
 
-function showConfirm(message, icon = '⚠️') {
+function showConfirm(message, title = 'Confirm Action') {
     return new Promise((resolve) => {
         const overlay = document.getElementById('mq-confirm-overlay');
         const msgEl = document.getElementById('mq-confirm-msg');
+        const titleEl = document.getElementById('mq-confirm-title');
         const okBtn = document.getElementById('mq-confirm-ok');
         const cancelBtn = document.getElementById('mq-confirm-cancel');
         if (!overlay) { resolve(window.confirm(message)); return; }
 
-        msgEl.innerHTML = `<span class="confirm-icon">${icon}</span>${message}`;
+        titleEl.textContent = title;
+        msgEl.textContent = message;
         overlay.classList.add('visible');
 
         function cleanup(result) {

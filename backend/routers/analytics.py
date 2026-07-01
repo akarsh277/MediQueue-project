@@ -21,7 +21,7 @@ def get_db():
 
 @router.get("/dashboard")
 def get_dashboard(db: Session = Depends(get_db)):
-    today_date = datetime.utcnow().date()
+    today_date = datetime.now().date()
     today_iso = today_date.isoformat()
 
     # 1. Today Patients
@@ -138,7 +138,7 @@ def export_csv(db: Session = Depends(get_db)):
 
 @router.get("/forecast")
 def get_forecast(db: Session = Depends(get_db)):
-    today_date = datetime.utcnow().date()
+    today_date = datetime.now().date()
     start_date = today_date - timedelta(days=28)
     start_iso = start_date.isoformat()
     
@@ -175,7 +175,7 @@ def get_forecast(db: Session = Depends(get_db)):
 
 @router.get("/hourly-heatmap")
 def get_hourly_heatmap(db: Session = Depends(get_db)):
-    today_date = datetime.utcnow().date()
+    today_date = datetime.now().date()
     start_date = today_date - timedelta(days=7)
     
     visits = db.query(models.PatientVisit).filter(
@@ -193,7 +193,7 @@ def get_hourly_heatmap(db: Session = Depends(get_db)):
 
 @router.get("/bed-forecast")
 def get_bed_forecast(db: Session = Depends(get_db)):
-    today_date = datetime.utcnow().date()
+    today_date = datetime.now().date()
     start_date = today_date - timedelta(days=7)
     
     # Find all admissions in the last 7 days

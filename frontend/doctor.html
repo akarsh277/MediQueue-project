@@ -733,6 +733,15 @@
 
         const rep = det.current_reports.map(r => '📄 <a href="' + API_BASE + r.url + '" target="_blank" style="color:var(--clr-primary)">' + r.filename + '</a>').join(', ');
 
+        const savedDiag = det.current_diagnosis || det.current_condition || '';
+        const savedPrescs = det.current_prescriptions && det.current_prescriptions.length > 0
+          ? det.current_prescriptions.map(p => `
+              <div style="background:rgba(0,0,0,0.2); padding:0.5rem; border-radius:4px; margin-bottom:0.4rem; font-size:0.85rem;">
+                💊 <strong>${p.medicine_name}</strong> ${p.dosage ? `(${p.dosage})` : ''} ${p.duration ? `for ${p.duration}` : ''}
+                ${p.notes ? `<br><em style="color:var(--txt-300)">Note: ${p.notes}</em>` : ''}
+              </div>`).join('')
+          : '<div class="sub" style="margin-bottom:1rem;">No medicines prescribed yet</div>';
+
         detailsStr = `
        <div style="margin-top:1.5rem; display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
          <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--clr-border);">
@@ -743,7 +752,13 @@
          </div>
          <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--clr-border);">
            <div style="font-size:0.85rem; color:var(--clr-primary); margin-bottom:1rem; text-transform:uppercase; font-weight:700;">Digital Prescription</div>
-           <input type="text" id="diag-input" class="form-input" placeholder="Diagnosis (e.g. Viral Fever)" style="margin-bottom:0.8rem;" title="Diagnosis">
+           
+           <!-- Saved Prescriptions List -->
+           <div id="saved-prescriptions-list" style="margin-bottom: 1rem;">
+             ${savedPrescs}
+           </div>
+
+           <input type="text" id="diag-input" class="form-input" placeholder="Diagnosis (e.g. Viral Fever)" style="margin-bottom:0.8rem;" title="Diagnosis" value="${savedDiag}">
            <input type="text" id="med-name" class="form-input" placeholder="Medicine Name" style="margin-bottom:0.5rem;">
            <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
              <input type="text" id="med-dosage" class="form-input" placeholder="Dosage (e.g. 1-0-1)">
@@ -929,11 +944,9 @@
         await api(`/prescription/${visitId}`, 'POST', { diagnosis: diag || null, prescriptions: prescriptions });
         showToast('Prescription saved successfully! 💊', 'success');
 
-        // clear inputs logically so they don't resubmit same medicine
-        if (document.getElementById('med-name')) document.getElementById('med-name').value = '';
-        if (document.getElementById('med-dosage')) document.getElementById('med-dosage').value = '';
-        if (document.getElementById('med-duration')) document.getElementById('med-duration').value = '';
-        if (document.getElementById('med-notes')) document.getElementById('med-notes').value = '';
+        // Force a re-render to show the newly added medicines
+        servingVisitId = null;
+        await fetchServing();
 
       } catch (err) {
         showToast('Error saving prescription details: ' + err.message, 'error');
@@ -956,7 +969,7 @@
     }
 
     async function pushBackPatient(visitId) {
-      const confirmed = await showConfirm("Are you sure you want to push this patient back into the queue? This rests their wait time to zero.", "👇");
+      const confirmed = await showConfirm("Are you sure you want to push this patient back into the queue? This resets their wait time to zero.", "Push Back Patient");
       if (!confirmed) return;
       try {
         await api(`/push-back/${visitId}`, 'POST');
@@ -967,7 +980,8 @@
     }
 
     async function cancelDoctorPatient(visitId) {
-      if (!confirm("Are you sure you want to cancel this patient visit completely?")) return;
+      const confirmed = await showConfirm("Are you sure you want to cancel this patient visit completely?", "Cancel Appointment");
+      if (!confirmed) return;
       try {
         await api(`/cancelPatient/${visitId}`, 'POST');
         showToast('Patient appointment cancelled ❌', 'success');

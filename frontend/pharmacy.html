@@ -126,6 +126,13 @@
         <input type="number" id="token-input" class="form-input" placeholder="Token #" required min="1">
         <button type="submit" class="btn btn-primary" id="search-btn">Search</button>
       </form>
+      
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <span style="color: var(--txt-300); font-size: 0.9rem; margin-right: 0.5rem;">Or</span>
+        <button type="button" class="btn btn-ghost" id="view-all-btn" style="border: 1px dashed rgba(255,255,255,0.2);">
+          View All Today's Prescriptions
+        </button>
+      </div>
     </div>
 
     <div id="results-container">
@@ -153,10 +160,12 @@
         }
 
         container.innerHTML = res.data.map(visit => {
+          // Default to the searched token, but use the visit's actual token_number if viewing all
+          const displayToken = visit.token_number || token || '?';
           let presHTML = visit.prescriptions.map(p => {
             let btnHtml = p.is_dispensed ?
               `<span class="status-badge status-dispensed">Dispensed</span>` :
-              `<button class="btn btn-accent btn-sm" onclick="markDispensed(${p.id}, ${token})">Mark Dispensed</button>`;
+              `<button class="btn btn-accent btn-sm" onclick="markDispensed(${p.id}, ${displayToken})">Mark Dispensed</button>`;
 
             return `
           <div class="med-row fade-in">
@@ -168,13 +177,17 @@
             <div>${btnHtml}</div>
           </div>`;
           }).join('');
+          
+          if (!presHTML) {
+            presHTML = '<div class="sub" style="padding: 1rem; text-align: center; font-style: italic;">No specific medicines prescribed.</div>';
+          }
 
           return `
         <div class="prescription-card">
           <div class="p-header">
             <div>
               <div class="p-patient-name">${visit.patient_name}</div>
-              <div class="sub">Token #${token}</div>
+              <div class="sub">Token #${displayToken}</div>
             </div>
             <div style="text-align:right;">
               <div style="color:var(--txt-200)">${visit.doctor_name}</div>
@@ -186,7 +199,7 @@
         }).join('');
 
       } catch (err) {
-        if (err.message.includes('404')) {
+        if (err.status === 404 || err.message.includes('404')) {
           container.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div>Visit not found for token #${token} today.</div></div>`;
         } else {
           showToast(err.message, 'error');
@@ -201,12 +214,78 @@
         await api(`/pharmacy/dispense/${prescriptionId}`, 'POST');
         showToast('Medicine marked as dispensed!', 'success');
         // Re-trigger search to update UI
-        document.getElementById('token-input').value = tokenNumber;
-        document.getElementById('search-btn').click();
+        if (document.getElementById('token-input').value) {
+           document.getElementById('token-input').value = tokenNumber;
+           document.getElementById('search-btn').click();
+        } else {
+           // If they used "View All", just re-click View All
+           document.getElementById('view-all-btn').click();
+        }
       } catch (err) {
         showToast(err.message, 'error');
       }
     }
+    
+    document.getElementById('view-all-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('view-all-btn');
+      const container = document.getElementById('results-container');
+      
+      // Clear token input so search knows we are in 'view all' mode
+      document.getElementById('token-input').value = '';
+
+      setLoading(btn, true);
+      try {
+        const res = await api(`/pharmacy/today`);
+
+        if (!res.data || res.data.length === 0) {
+          container.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div>No prescriptions found for today.</div></div>`;
+          return;
+        }
+
+        container.innerHTML = res.data.map(visit => {
+          const displayToken = visit.token_number || '?';
+          let presHTML = visit.prescriptions.map(p => {
+            let btnHtml = p.is_dispensed ?
+              `<span class="status-badge status-dispensed">Dispensed</span>` :
+              `<button class="btn btn-accent btn-sm" onclick="markDispensed(${p.id}, ${displayToken})">Mark Dispensed</button>`;
+
+            return `
+          <div class="med-row fade-in">
+            <div class="med-details">
+              <span class="med-name">${p.medicine_name}</span>
+              ${(p.dosage || p.duration) ? `<span class="med-inst">${p.dosage ? p.dosage : ''} ${p.duration ? 'for ' + p.duration : ''}</span>` : ''}
+              ${p.notes ? `<span class="med-inst" style="font-style:italic">Note: ${p.notes}</span>` : ''}
+            </div>
+            <div>${btnHtml}</div>
+          </div>`;
+          }).join('');
+          
+          if (!presHTML) {
+            presHTML = '<div class="sub" style="padding: 1rem; text-align: center; font-style: italic;">No specific medicines prescribed.</div>';
+          }
+
+          return `
+        <div class="prescription-card">
+          <div class="p-header">
+            <div>
+              <div class="p-patient-name">${visit.patient_name}</div>
+              <div class="sub">Token #${displayToken}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="color:var(--txt-200)">${visit.doctor_name}</div>
+              <div class="sub">Diagnosis: ${visit.diagnosis || 'None'}</div>
+            </div>
+          </div>
+          <div>${presHTML}</div>
+        </div>`;
+        }).join('');
+
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setLoading(btn, false);
+      }
+    });
   </script>
 
   <script>

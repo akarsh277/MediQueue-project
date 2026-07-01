@@ -139,7 +139,7 @@ def add_bed(data: schemas.AddBedRequest, db: Session = Depends(get_db)):
 @router.get("/adminStats")
 def admin_stats(db: Session = Depends(get_db)):
 
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().strftime("%Y-%m-%d")
 
     total_patients_today = db.query(models.PatientVisit).filter(
         models.PatientVisit.visit_date == today
@@ -318,7 +318,7 @@ def auto_assign_doctor(data: schemas.AutoAssignDoctorRequest, db: Session = Depe
     if patient.status != "waiting":
          raise HTTPException(status_code=400, detail="Only waiting patients can be reassigned")
 
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().strftime("%Y-%m-%d")
     least_busy = get_least_busy_doctor(db, today, dept=patient.department)
     
     if not least_busy:

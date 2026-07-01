@@ -16,7 +16,7 @@ def get_db():
 
 @router.get("/search/{token_number}")
 def search_prescription(token_number: int, db: Session = Depends(get_db)):
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().strftime("%Y-%m-%d")
     
     # We might have multiple visits with the same token number (different doctors),
     # but the token number + today usually identifies a few. We should return all today's prescriptions for this token.
@@ -43,17 +43,56 @@ def search_prescription(token_number: int, db: Session = Depends(get_db)):
                 "is_dispensed": bool(p.is_dispensed)
             })
             
-        if prescriptions:
+        if prescriptions or v.status in ["completed", "admission_requested", "admitted", "discharged"]:
             results.append({
                 "visit_id": v.id,
                 "patient_name": v.name,
                 "doctor_name": f"Dr. {docs.get(v.doctor_id, 'Unknown')}",
-                "diagnosis": v.diagnosis,
+                "diagnosis": v.condition,
                 "prescriptions": prescriptions
             })
             
     if not results:
         return {"message": "No prescriptions found for this token", "data": []}
+        
+    return {"message": "Prescriptions found", "data": results}
+
+@router.get("/today")
+def get_todays_prescriptions(db: Session = Depends(get_db)):
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # We want visits that either have prescriptions or have been seen by a doctor
+    visits = db.query(models.PatientVisit).filter(
+        models.PatientVisit.visit_date == today
+    ).order_by(models.PatientVisit.id.desc()).all()
+    
+    results = []
+    docs = {d.id: d.name for d in db.query(models.Doctor).all()}
+    
+    for v in visits:
+        prescriptions = []
+        for p in v.prescriptions:
+            prescriptions.append({
+                "id": p.id,
+                "medicine_name": p.medicine_name,
+                "dosage": p.dosage,
+                "duration": p.duration,
+                "notes": p.notes,
+                "is_dispensed": bool(p.is_dispensed)
+            })
+            
+        if prescriptions or v.status in ["completed", "admission_requested", "admitted", "discharged"]:
+            results.append({
+                "visit_id": v.id,
+                "token_number": v.token_number,
+                "patient_name": v.name,
+                "doctor_name": f"Dr. {docs.get(v.doctor_id, 'Unknown')}",
+                "diagnosis": v.condition,
+                "prescriptions": prescriptions
+            })
+            
+    if not results:
+        return {"message": "No prescriptions found for today", "data": []}
         
     return {"message": "Prescriptions found", "data": results}
 

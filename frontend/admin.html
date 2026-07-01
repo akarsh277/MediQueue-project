@@ -1017,7 +1017,7 @@
     }
 
     async function cancelByAdmin(visitId, btn) {
-      const confirmed = await showConfirm('Cancel this appointment? This marks the patient as a no-show and removes them from the queue.', ' Cancel');
+      const confirmed = await showConfirm('Cancel this appointment? This marks the patient as a no-show and removes them from the queue.', 'Cancel Appointment');
       if (!confirmed) return;
       setLoading(btn, true);
       try {
@@ -1089,7 +1089,7 @@
     }
 
     async function dischargePatient(visitId, btn) {
-      const confirmed = await showConfirm('Discharge this patient and free the bed?', '🚪');
+      const confirmed = await showConfirm('Discharge this patient and free the bed?', 'Discharge Patient');
       if (!confirmed) return;
       setLoading(btn, true);
       try {

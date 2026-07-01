@@ -61,7 +61,7 @@ def my_doctor_id(user_id: int, db: Session = Depends(get_db)):
 # ── Today's All Patient Visits ─────────────────────────────────
 @protected_router.get("/todayPatients")
 def today_patients(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().strftime("%Y-%m-%d")
     visits = (
         db.query(models.PatientVisit)
         .filter(models.PatientVisit.visit_date == today)
@@ -108,7 +108,7 @@ def today_patients(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
 @router.get("/queue/{doctor_id}")
 def get_queue(doctor_id: int, db: Session = Depends(get_db)):
 
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().strftime("%Y-%m-%d")
 
     patients = (
         db.query(models.PatientVisit)
@@ -195,7 +195,7 @@ def get_queue(doctor_id: int, db: Session = Depends(get_db)):
 @protected_router.post("/nextPatient/{doctor_id}")
 def next_patient(doctor_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
 
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().strftime("%Y-%m-%d")
 
     # Check if someone already serving
     serving = (
@@ -375,7 +375,7 @@ def discharge_patient(visit_id: int, background_tasks: BackgroundTasks, db: Sess
 @router.get("/currentServing/{doctor_id}")
 def current_serving(doctor_id: int, db: Session = Depends(get_db)):
 
-    today = datetime.utcnow().date().isoformat()
+    today = datetime.now().strftime("%Y-%m-%d")
 
     patient = db.query(models.PatientVisit).filter(
         models.PatientVisit.doctor_id == doctor_id,
@@ -550,6 +550,7 @@ def get_patient_details(visit_id: int, db: Session = Depends(get_db)):
             })
             
     current_reports = [{"filename": r.filename, "url": f"/uploads/reports/{r.file_path}"} for r in v.reports]
+    current_prescriptions = [{"medicine_name": p.medicine_name, "dosage": p.dosage, "duration": p.duration, "notes": p.notes} for p in v.prescriptions]
 
     return {
         "visit_id": v.id,
@@ -557,7 +558,10 @@ def get_patient_details(visit_id: int, db: Session = Depends(get_db)):
         "age": v.age,
         "problem": v.problem,
         "history": history,
-        "current_reports": current_reports
+        "current_reports": current_reports,
+        "current_diagnosis": v.diagnosis,
+        "current_condition": v.condition,
+        "current_prescriptions": current_prescriptions
     }
 
 @protected_router.post("/prescription/{visit_id}")
