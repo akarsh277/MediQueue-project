@@ -5,9 +5,7 @@ from datetime import datetime
 from database import SessionLocal
 import models
 from pydantic import BaseModel
-from security import RoleChecker
-
-router = APIRouter(prefix="/pharmacy", tags=["pharmacy"], dependencies=[Depends(RoleChecker(['admin', 'doctor']))])
+router = APIRouter(prefix="/pharmacy", tags=["pharmacy"])
 
 def get_db():
     db = SessionLocal()
