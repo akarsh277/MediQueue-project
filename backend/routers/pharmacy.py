@@ -16,14 +16,20 @@ def get_db():
 
 @router.get("/search/{token_number}")
 def search_prescription(token_number: int, db: Session = Depends(get_db)):
-    today = datetime.now().strftime("%Y-%m-%d")
+    from datetime import timedelta
+    today_dt = datetime.now().date()
+    yesterday_dt = today_dt - timedelta(days=1)
+    dates = [today_dt.strftime("%Y-%m-%d"), yesterday_dt.strftime("%Y-%m-%d")]
     
-    # We might have multiple visits with the same token number (different doctors),
-    # but the token number + today usually identifies a few. We should return all today's prescriptions for this token.
+    print(f"[DEBUG] Pharmacy search requested for token: {token_number} on dates: {dates}")
+    
+    # We query both today and yesterday to prevent timezone boundary issues
     visits = db.query(models.PatientVisit).filter(
         models.PatientVisit.token_number == token_number,
-        models.PatientVisit.visit_date == today
+        models.PatientVisit.visit_date.in_(dates)
     ).all()
+    
+    print(f"[DEBUG] Found {len(visits)} visits matching token {token_number}")
     
     if not visits:
         raise HTTPException(status_code=404, detail="No patient found with this token today")
@@ -43,9 +49,13 @@ def search_prescription(token_number: int, db: Session = Depends(get_db)):
                 "is_dispensed": bool(p.is_dispensed)
             })
             
-        if prescriptions or v.status in ["completed", "admission_requested", "admitted", "discharged"]:
+        print(f"[DEBUG] Visit ID: {v.id}, Patient: {v.name}, Status: {v.status}, Prescriptions Count: {len(prescriptions)}")
+            
+        # Display visits that have prescriptions OR have completed the consultation/admitted status
+        if prescriptions or v.status in ["completed", "admission_requested", "admitted", "discharged", "serving"]:
             results.append({
                 "visit_id": v.id,
+                "token_number": v.token_number,
                 "patient_name": v.name,
                 "doctor_name": f"Dr. {docs.get(v.doctor_id, 'Unknown')}",
                 "diagnosis": v.condition,
@@ -53,17 +63,23 @@ def search_prescription(token_number: int, db: Session = Depends(get_db)):
             })
             
     if not results:
+        print(f"[DEBUG] Returning empty data for token {token_number}")
         return {"message": "No prescriptions found for this token", "data": []}
         
+    print(f"[DEBUG] Returning {len(results)} results for token {token_number}")
     return {"message": "Prescriptions found", "data": results}
 
 @router.get("/today")
 def get_todays_prescriptions(db: Session = Depends(get_db)):
-    today = datetime.now().strftime("%Y-%m-%d")
+    from datetime import timedelta
+    today_dt = datetime.now().date()
+    yesterday_dt = today_dt - timedelta(days=1)
+    dates = [today_dt.strftime("%Y-%m-%d"), yesterday_dt.strftime("%Y-%m-%d")]
     
-    # We want visits that either have prescriptions or have been seen by a doctor
+    print(f"[DEBUG] Pharmacy today request for dates: {dates}")
+    
     visits = db.query(models.PatientVisit).filter(
-        models.PatientVisit.visit_date == today
+        models.PatientVisit.visit_date.in_(dates)
     ).order_by(models.PatientVisit.id.desc()).all()
     
     results = []
@@ -81,7 +97,7 @@ def get_todays_prescriptions(db: Session = Depends(get_db)):
                 "is_dispensed": bool(p.is_dispensed)
             })
             
-        if prescriptions or v.status in ["completed", "admission_requested", "admitted", "discharged"]:
+        if prescriptions or v.status in ["completed", "admission_requested", "admitted", "discharged", "serving"]:
             results.append({
                 "visit_id": v.id,
                 "token_number": v.token_number,

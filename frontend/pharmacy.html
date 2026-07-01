@@ -144,9 +144,8 @@
   <script src="config.js"></script>
   <script src="script.js?v=4"></script>
   <script>
-    document.getElementById('search-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const token = document.getElementById('token-input').value;
+    async function performSearch(token) {
+      if (!token) return;
       const btn = document.getElementById('search-btn');
       const container = document.getElementById('results-container');
 
@@ -160,12 +159,11 @@
         }
 
         container.innerHTML = res.data.map(visit => {
-          // Default to the searched token, but use the visit's actual token_number if viewing all
           const displayToken = visit.token_number || token || '?';
           let presHTML = visit.prescriptions.map(p => {
             let btnHtml = p.is_dispensed ?
               `<span class="status-badge status-dispensed">Dispensed</span>` :
-              `<button class="btn btn-accent btn-sm" onclick="markDispensed(${p.id}, ${displayToken})">Mark Dispensed</button>`;
+              `<button type="button" class="btn btn-accent btn-sm" onclick="markDispensed(${p.id}, ${displayToken})">Mark Dispensed</button>`;
 
             return `
           <div class="med-row fade-in">
@@ -191,7 +189,6 @@
             </div>
             <div style="text-align:right;">
               <div style="color:var(--txt-200)">${visit.doctor_name}</div>
-              <div class="sub">Diagnosis: ${visit.diagnosis || 'None'}</div>
             </div>
           </div>
           <div>${presHTML}</div>
@@ -207,26 +204,9 @@
       } finally {
         setLoading(btn, false);
       }
-    });
-
-    async function markDispensed(prescriptionId, tokenNumber) {
-      try {
-        await api(`/pharmacy/dispense/${prescriptionId}`, 'POST');
-        showToast('Medicine marked as dispensed!', 'success');
-        // Re-trigger search to update UI
-        if (document.getElementById('token-input').value) {
-           document.getElementById('token-input').value = tokenNumber;
-           document.getElementById('search-btn').click();
-        } else {
-           // If they used "View All", just re-click View All
-           document.getElementById('view-all-btn').click();
-        }
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
     }
-    
-    document.getElementById('view-all-btn').addEventListener('click', async () => {
+
+    async function performViewAll() {
       const btn = document.getElementById('view-all-btn');
       const container = document.getElementById('results-container');
       
@@ -247,7 +227,7 @@
           let presHTML = visit.prescriptions.map(p => {
             let btnHtml = p.is_dispensed ?
               `<span class="status-badge status-dispensed">Dispensed</span>` :
-              `<button class="btn btn-accent btn-sm" onclick="markDispensed(${p.id}, ${displayToken})">Mark Dispensed</button>`;
+              `<button type="button" class="btn btn-accent btn-sm" onclick="markDispensed(${p.id}, ${displayToken})">Mark Dispensed</button>`;
 
             return `
           <div class="med-row fade-in">
@@ -273,7 +253,6 @@
             </div>
             <div style="text-align:right;">
               <div style="color:var(--txt-200)">${visit.doctor_name}</div>
-              <div class="sub">Diagnosis: ${visit.diagnosis || 'None'}</div>
             </div>
           </div>
           <div>${presHTML}</div>
@@ -285,7 +264,32 @@
       } finally {
         setLoading(btn, false);
       }
+    }
+
+    document.getElementById('search-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const token = document.getElementById('token-input').value;
+      performSearch(token);
     });
+
+    async function markDispensed(prescriptionId, tokenNumber) {
+      try {
+        await api(`/pharmacy/dispense/${prescriptionId}`, 'POST');
+        showToast('Medicine marked as dispensed!', 'success');
+        
+        // Re-fetch the current view state directly without reloading the page or losing the token input value
+        const currentSearchToken = document.getElementById('token-input').value;
+        if (currentSearchToken) {
+           await performSearch(currentSearchToken);
+        } else {
+           await performViewAll();
+        }
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+    
+    document.getElementById('view-all-btn').addEventListener('click', performViewAll);
   </script>
 
   <script>

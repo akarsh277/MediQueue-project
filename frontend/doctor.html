@@ -726,7 +726,6 @@
         const phist = det.history.map(h => `<div style="font-size:0.8rem; margin-bottom:0.4rem; padding:0.4rem; background:rgba(255,255,255,0.05); border-radius:4px;">
          <strong>${h.date}</strong> - ${h.doctor}<br>
          <em>Symptoms:</em> ${h.problem}<br>
-         <em>Diagnosis:</em> ${h.diagnosis || 'None'}<br>
          ${h.prescriptions.map(p => `💊 ${p.medicine_name} (${p.dosage})`).join('<br>')}<br>
          ${h.reports.map(r => '📄 <a href="' + API_BASE + r.url + '" target="_blank" style="color:var(--clr-primary)">' + r.filename + '</a>').join(', ')}
        </div>`).join('');

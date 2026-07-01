@@ -1,4 +1,8 @@
 // Global Configuration
-// For local development, use 'http://localhost:8000'
-// For production, use your deployed Render backend URL, e.g., 'https://mediqueue-api.onrender.com'
-window.API_BASE_URL = 'https://mediqueue-project.onrender.com';
+// Automatically use local backend if running locally (localhost, 127.0.0.1, or file protocol)
+window.API_BASE_URL = (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' || 
+    window.location.hostname === ''
+) ? 'http://localhost:8000' : 'https://mediqueue-project.onrender.com';
+
