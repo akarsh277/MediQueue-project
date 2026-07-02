@@ -50,9 +50,11 @@ def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
 
-    # Read-only restriction for demo_admin account
+    # Read-only restriction for demo_admin account, except for admitting and discharging patients
     if user.username == "demo_admin" and request.method in ("POST", "PUT", "DELETE", "PATCH"):
-        raise HTTPException(status_code=403, detail="You are in Demo Admin mode. Write operations are disabled.")
+        path = request.url.path
+        if not ("/confirm-admission/" in path or "/dischargePatient/" in path):
+            raise HTTPException(status_code=403, detail="You are in Demo Admin mode. Write operations are disabled.")
 
     return user
 
