@@ -146,14 +146,123 @@
 
     @keyframes float {
 
-      0%,
-      100% {
-        transform: translateY(0) rotate(0deg);
-      }
-
       50% {
         transform: translateY(-18px) rotate(15deg);
       }
+    }
+
+    /* Modal / Dialog Styles */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(4, 8, 15, 0.85);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+      visibility: hidden;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      width: 92%;
+      max-width: 460px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-card);
+      transform: translateY(20px);
+      transition: transform 0.25s ease;
+      position: relative;
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1.1rem;
+      background: transparent;
+      border: none;
+      color: var(--txt-300);
+      font-size: 1.6rem;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+
+    .modal-close:hover {
+      color: var(--clr-danger);
+    }
+
+    .creds-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--txt-100);
+      margin-bottom: 0.25rem;
+    }
+
+    .creds-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .creds-table th {
+      text-align: left;
+      color: var(--txt-300);
+      font-weight: 600;
+      padding: 0.5rem;
+      border-bottom: 1px solid var(--clr-border);
+    }
+
+    .creds-table td {
+      padding: 0.6rem 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      color: var(--txt-200);
+    }
+
+    .creds-row:hover {
+      background: rgba(255, 255, 255, 0.015);
+    }
+
+    .creds-table code {
+      font-family: monospace;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      color: var(--txt-100);
+    }
+
+    .use-btn {
+      background: var(--clr-primary-dim);
+      border: 1px solid rgba(0, 198, 167, 0.25);
+      color: var(--clr-primary);
+      border-radius: 100px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.72rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .use-btn:hover {
+      background: var(--clr-primary);
+      color: #0c1829;
+      transform: translateY(-1px);
     }
   </style>
   <link rel="manifest" href="manifest.json">
@@ -211,6 +320,71 @@
           style="padding: 0.5rem 1.5rem; text-decoration: none; border: 1px solid var(--clr-border); border-radius: 100px;">Register
           as Patient</a>
       </div>
+
+      <div style="text-align:center; margin-top: 1.5rem;">
+        <button id="show-creds-btn" type="button" class="btn btn-ghost" style="padding: 0.5rem 1.5rem; text-decoration: none; border: 1px solid var(--clr-border); border-radius: 100px; color: var(--txt-200); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--clr-primary)'; this.style.color='var(--clr-primary)';" onmouseout="this.style.borderColor='var(--clr-border)'; this.style.color='var(--txt-200)';">
+          🔑 Show Test Credentials
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credentials Modal -->
+  <div id="creds-modal" class="modal-overlay">
+    <div class="modal-content">
+      <button id="close-creds-btn" class="modal-close" aria-label="Close">&times;</button>
+      <div class="creds-title">🔑 Test Credentials</div>
+      <p style="font-size: 0.8rem; color: var(--txt-300); margin-bottom: 1rem; line-height: 1.4;">
+        Select an account below to automatically fill the login form.
+      </p>
+      <table class="creds-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Username</th>
+            <th>Password</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="creds-row">
+            <td style="color: var(--clr-primary); font-weight: 600;">Admin (Demo)</td>
+            <td><code>demo_admin</code></td>
+            <td><code>demoadmin123</code></td>
+            <td><button type="button" class="use-btn" onclick="useCreds('demo_admin', 'demoadmin123')">Autofill</button></td>
+          </tr>
+          <tr class="creds-row">
+            <td style="color: var(--clr-accent); font-weight: 600;">Patient</td>
+            <td><code>Ak</code></td>
+            <td><code>patient123</code></td>
+            <td><button type="button" class="use-btn" onclick="useCreds('Ak', 'patient123')">Autofill</button></td>
+          </tr>
+          <tr class="creds-row">
+            <td style="color: var(--clr-accent); font-weight: 600;">Patient</td>
+            <td><code>Suresh</code></td>
+            <td><code>patient123</code></td>
+            <td><button type="button" class="use-btn" onclick="useCreds('Suresh', 'patient123')">Autofill</button></td>
+          </tr>
+          <tr class="creds-row">
+            <td style="color: var(--clr-warn); font-weight: 600;">Doctor</td>
+            <td><code>Sharma</code></td>
+            <td><code>doc123</code></td>
+            <td><button type="button" class="use-btn" onclick="useCreds('Sharma', 'doc123')">Autofill</button></td>
+          </tr>
+          <tr class="creds-row">
+            <td style="color: var(--clr-warn); font-weight: 600;">Doctor</td>
+            <td><code>Mehta</code></td>
+            <td><code>doc123</code></td>
+            <td><button type="button" class="use-btn" onclick="useCreds('Mehta', 'doc123')">Autofill</button></td>
+          </tr>
+          <tr class="creds-row">
+            <td style="color: var(--clr-warn); font-weight: 600;">Doctor</td>
+            <td><code>Steve</code></td>
+            <td><code>doc123</code></td>
+            <td><button type="button" class="use-btn" onclick="useCreds('Steve', 'doc123')">Autofill</button></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -274,6 +448,32 @@
         setLoading(btn, false);
       }
     });
+
+    // Credentials Modal toggle handlers
+    const modal = document.getElementById('creds-modal');
+    const showBtn = document.getElementById('show-creds-btn');
+    const closeBtn = document.getElementById('close-creds-btn');
+
+    if (showBtn && modal) {
+      showBtn.addEventListener('click', () => modal.classList.add('active'));
+    }
+    if (closeBtn && modal) {
+      closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+    }
+    // Close modal on clicking overlay background
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('active');
+      });
+    }
+
+    // Autofill helper
+    window.useCreds = function(username, password) {
+      document.getElementById('username').value = username;
+      document.getElementById('password').value = password;
+      if (modal) modal.classList.remove('active');
+      showToast(`Autofilled credentials for ${username}!`, 'success');
+    };
   </script>
 
   <script>

@@ -56,7 +56,7 @@ def _startup_db_seed():
         pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
         
         admin_exists = db.query(models.User).filter(
-            models.User.role == "admin"
+            models.User.username == "admin"
         ).first()
         if not admin_exists:
             db.add(models.User(
@@ -69,6 +69,17 @@ def _startup_db_seed():
             # If the admin was already created but the password isn't hashed, fix it
             if admin_exists.password and not admin_exists.password.startswith(("$pbkdf2", "$2b$", "$2a$")):
                 admin_exists.password = pwd_context.hash(admin_exists.password)
+            
+        demo_admin_exists = db.query(models.User).filter(
+            models.User.username == "demo_admin"
+        ).first()
+        if not demo_admin_exists:
+            db.add(models.User(
+                username="demo_admin",
+                phone="1111111111",
+                password=pwd_context.hash("demoadmin123"),
+                role="admin",
+            ))
             
         # 4. Seed Wards
         ward_names = ["ICU", "General Ward", "Normal Ward"]

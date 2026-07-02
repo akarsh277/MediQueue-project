@@ -32,7 +32,7 @@ def create_access_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
+def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
     token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -49,6 +49,11 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
+
+    # Read-only restriction for demo_admin account
+    if user.username == "demo_admin" and request.method in ("POST", "PUT", "DELETE", "PATCH"):
+        raise HTTPException(status_code=403, detail="You are in Demo Admin mode. Write operations are disabled.")
+
     return user
 
 class RoleChecker:
