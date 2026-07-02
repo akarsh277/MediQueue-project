@@ -76,7 +76,7 @@ def _startup_db_seed():
         if not demo_admin_exists:
             db.add(models.User(
                 username="demo_admin",
-                phone="1111111111",
+                phone="9999999999",
                 password=pwd_context.hash("demoadmin123"),
                 role="admin",
             ))
